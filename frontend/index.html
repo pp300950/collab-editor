@@ -5,166 +5,433 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CollabPy — Collaborative Python Editor</title>
 
-<!-- CodeMirror 5 -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/theme/dracula.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/codemirror.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/mode/python/python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/closebrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/edit/matchbrackets.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/selection/active-line.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/comment/comment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/hint/anyword-hint.min.js"></script>
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@400;500;600;700&display=swap');
 
 :root {
-  --bg:      #0d0f14;
-  --surface: #151820;
-  --sur2:    #1c2030;
-  --border:  #2a2f42;
-  --accent:  #7c6bff;
-  --accent2: #4ecdc4;
-  --text:    #e2e8f0;
-  --muted:   #64748b;
-  --ok:      #4ade80;
-  --err:     #f87171;
-  --warn:    #fbbf24;
-  --fs:      14px;
+  --bg:       #0d0f14;
+  --surface:  #151820;
+  --sur2:     #1c2030;
+  --border:   #2a2f42;
+  --accent:   #7c6bff;
+  --accent2:  #4ecdc4;
+  --text:     #e2e8f0;
+  --muted:    #64748b;
+  --ok:       #4ade80;
+  --err:      #f87171;
+  --warn:     #fbbf24;
+  --fs:       14px;
+  /* ── FIX 1: alternating row colors ── */
+  --row-even: rgba(255,255,255,0.000);
+  --row-odd:  rgba(255,255,255,0.022);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Outfit', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
 
 /* ── TOPBAR ── */
-.topbar{display:flex;align-items:center;gap:12px;padding:0 14px;height:50px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
-.logo{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--accent);white-space:nowrap}
-.logo span{color:var(--accent2)}
-.topbar-mid{flex:1;display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
-.users-bar{display:flex;gap:6px;align-items:center;flex-shrink:0}
-.user-pill{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 5px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid transparent;background:var(--sur2);white-space:nowrap;transition:opacity .3s}
-.user-pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.user-pill.inactive{opacity:.35}
-.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--ok);box-shadow:0 0 5px var(--ok);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.name-input{background:var(--sur2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-family:'Space Grotesk',sans-serif;font-size:12px;width:110px;outline:none;transition:border-color .2s}
-.name-input:focus{border-color:var(--accent)}
-.icon-btn{background:var(--sur2);border:1px solid var(--border);color:var(--muted);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500}
-.icon-btn:hover{color:var(--text);border-color:var(--accent)}
-.icon-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(124,107,255,.1)}
-.btn-run{display:flex;align-items:center;gap:7px;padding:6px 16px;background:#22c55e;color:#000;border:none;border-radius:7px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s}
-.btn-run:hover{background:#4ade80;transform:translateY(-1px)}
-.btn-run:active{transform:translateY(0)}
-.btn-run:disabled{background:var(--muted);cursor:not-allowed;transform:none}
-.btn-run svg{width:13px;height:13px}
-.conn-badge{font-size:11px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace}
-.conn-badge.connected{background:rgba(74,222,128,.15);color:var(--ok)}
-.conn-badge.disconnected{background:rgba(248,113,113,.15);color:var(--err)}
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  height: 50px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--accent);
+  white-space: nowrap;
+  user-select: none;
+}
+.logo span { color: var(--accent2); }
+.topbar-mid {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+.users-bar { display: flex; gap: 6px; align-items: center; }
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 6px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: var(--sur2);
+  white-space: nowrap;
+  transition: opacity .3s;
+}
+.user-pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.user-pill.inactive { opacity: .3; }
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 5px var(--ok);
+  animation: pulse 2s infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.name-input {
+  background: var(--sur2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  width: 110px;
+  outline: none;
+  transition: border-color .2s;
+}
+.name-input:focus { border-color: var(--accent); }
+.conn-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.conn-badge.connected    { background: rgba(74,222,128,.12); color: var(--ok); }
+.conn-badge.disconnected { background: rgba(248,113,113,.12); color: var(--err); }
+.btn-run {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 16px;
+  background: #22c55e;
+  color: #000;
+  border: none;
+  border-radius: 7px;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .15s;
+}
+.btn-run:hover    { background: #4ade80; transform: translateY(-1px); }
+.btn-run:active   { transform: translateY(0); }
+.btn-run:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
+.btn-run svg      { width: 13px; height: 13px; }
 
-/* ── TOOLBAR (below topbar) ── */
-.toolbar{display:flex;align-items:center;gap:6px;padding:5px 14px;background:var(--sur2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
-.toolbar-sep{width:1px;height:20px;background:var(--border);margin:0 2px}
-.fs-control{display:flex;align-items:center;gap:4px}
-.fs-btn{background:none;border:1px solid var(--border);color:var(--muted);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
-.fs-btn:hover{color:var(--text);border-color:var(--accent)}
-.fs-label{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:28px;text-align:center}
+/* ── TOOLBAR ── */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 16px;
+  background: var(--sur2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 2px; }
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 4px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: 'Outfit', sans-serif;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  user-select: none;
+}
+.icon-btn:hover           { color: var(--text); border-color: var(--muted); }
+.icon-btn.active          { color: var(--accent); border-color: var(--accent); background: rgba(124,107,255,.08); }
+.fs-control               { display: flex; align-items: center; gap: 4px; }
+.fs-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+  line-height: 1;
+}
+.fs-btn:hover { color: var(--text); border-color: var(--accent); }
+.fs-label { font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; min-width: 26px; text-align: center; }
 
-/* shortcuts panel */
-.shortcuts-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
-.shortcuts-overlay.open{display:flex}
-.shortcuts-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:440px;max-width:520px}
-.shortcuts-box h2{font-size:15px;margin-bottom:16px;color:var(--accent);font-family:'JetBrains Mono',monospace}
-.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
-.sc-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
-.sc-row:last-child{border:none}
-.sc-key{display:flex;gap:4px}
-.kbd{background:var(--sur2);border:1px solid var(--border);border-bottom:2px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text);white-space:nowrap}
-.sc-desc{font-size:12px;color:var(--muted)}
-.close-btn{margin-top:18px;display:block;width:100%;padding:8px;background:var(--sur2);border:1px solid var(--border);border-radius:7px;color:var(--text);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;transition:all .15s}
-.close-btn:hover{background:var(--border)}
+/* ── SHORTCUTS OVERLAY ── */
+.sc-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.65);
+  z-index: 300;
+  align-items: center;
+  justify-content: center;
+}
+.sc-overlay.open { display: flex; }
+.sc-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 28px;
+  min-width: 460px;
+  max-width: 540px;
+  box-shadow: 0 24px 80px rgba(0,0,0,.5);
+}
+.sc-box h2 { font-size: 14px; margin-bottom: 18px; color: var(--accent); font-family: 'JetBrains Mono', monospace; letter-spacing: .5px; }
+.sc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 24px; }
+.sc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+}
+.sc-row:last-child { border: none; }
+.sc-keys  { display: flex; gap: 3px; flex-wrap: wrap; }
+.kbd {
+  background: var(--sur2);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-radius: 4px;
+  padding: 2px 7px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--text);
+  white-space: nowrap;
+}
+.sc-desc { font-size: 12px; color: var(--muted); }
+.sc-close {
+  margin-top: 20px;
+  display: block;
+  width: 100%;
+  padding: 8px;
+  background: var(--sur2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .15s;
+}
+.sc-close:hover { background: var(--border); }
 
-/* ── MAIN ── */
-.main{flex:1;display:flex;overflow:hidden}
+/* ── MAIN LAYOUT ── */
+.main { flex: 1; display: flex; overflow: hidden; }
 
-/* ── EDITOR ── */
-.editor-pane{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);position:relative;overflow:hidden}
-.pane-header{padding:6px 14px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
-.pane-header .file-icon{color:var(--warn)}
-.cm-wrap{flex:1;overflow:hidden;position:relative}
+/* ── EDITOR PANE ── */
+.editor-pane {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  overflow: hidden;
+}
+.pane-header {
+  padding: 6px 14px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--muted);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.pane-header .fi { color: var(--warn); }
+.cm-wrap { flex: 1; overflow: hidden; position: relative; }
 
-/* CodeMirror overrides */
-.CodeMirror{font-family:'JetBrains Mono',monospace!important;font-size:var(--fs)!important;line-height:1.75!important;height:100%!important;background:#1a1e2e!important}
-.CodeMirror-scroll{padding-bottom:40px}
-.CodeMirror-gutters{background:#141824!important;border-right:1px solid var(--border)!important;min-width:44px}
-.CodeMirror-linenumber{color:#3a4060!important;padding:0 8px 0 6px}
-.CodeMirror-activeline-background{background:rgba(124,107,255,.07)!important}
-.CodeMirror-cursor{border-left:2px solid #e2e8f0!important}
-.CodeMirror-selected{background:rgba(124,107,255,.22)!important}
+/* ── CodeMirror base ── */
+.CodeMirror {
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: var(--fs) !important;
+  line-height: 1.8 !important;
+  height: 100% !important;
+  background: #161926 !important;
+}
+.CodeMirror-scroll    { padding-bottom: 40px; }
+.CodeMirror-gutters   { background: #0f1219 !important; border-right: 1px solid var(--border) !important; }
+.CodeMirror-linenumber { color: #3a4060 !important; padding: 0 10px 0 8px; }
+.CodeMirror-activeline-background { background: rgba(124,107,255,.08) !important; }
+.CodeMirror-cursor    { border-left: 2px solid #e2e8f0 !important; }
+.CodeMirror-selected  { background: rgba(124,107,255,.22) !important; }
 
-/* ── Python token colors (enhanced) ── */
-/* keywords: if, for, def, class, return… */
-.cm-keyword{color:#ff79c6!important;font-weight:700!important}
-/* builtins: print, len, range… */
-.cm-builtin{color:#8be9fd!important}
-/* strings */
-.cm-string{color:#f1fa8c!important}
-/* numbers */
-.cm-number{color:#bd93f9!important;font-weight:600!important}
-/* operators + =  */
-.cm-operator{color:#ff79c6!important}
-/* def/class name */
-.cm-def{color:#50fa7b!important;font-weight:700!important}
-/* comments */
-.cm-comment{color:#6272a4!important;font-style:italic!important}
-/* variables (identifiers) */
-.cm-variable{color:#f8f8f2!important}
-/* meta / decorator */
-.cm-meta{color:#ffb86c!important}
-/* property access */
-.cm-property{color:#50fa7b!important}
-/* error */
-.cm-error{color:#ff5555!important}
+/* ── FIX 1: alternating row stripes ──────────────────────────
+   Target the <pre> wrappers inside .CodeMirror-code.
+   Odd lines (1,3,5…) get a faint tint; even lines transparent.
+   Active-line override on top to keep highlight visible. */
+.CodeMirror-code > div:nth-child(odd)  > pre { background: var(--row-odd); }
+.CodeMirror-code > div:nth-child(even) > pre { background: var(--row-even); }
+.CodeMirror-activeline > pre { background: rgba(124,107,255,.1) !important; }
+
+/* ── Python syntax colors ── */
+.cm-keyword  { color: #ff79c6 !important; font-weight: 700 !important; }
+.cm-builtin  { color: #8be9fd !important; }
+.cm-string   { color: #f1fa8c !important; }
+.cm-string-2 { color: #e9c46a !important; }
+.cm-number   { color: #bd93f9 !important; font-weight: 600 !important; }
+.cm-operator { color: #ff79c6 !important; }
+.cm-def      { color: #50fa7b !important; font-weight: 700 !important; }
+.cm-variable { color: #f8f8f2 !important; }
+.cm-variable-2 { color: #cfcfff !important; }
+.cm-comment  { color: #6272a4 !important; font-style: italic !important; }
+.cm-meta     { color: #ffb86c !important; }
+.cm-property { color: #50fa7b !important; }
+.cm-error    { color: #ff5555 !important; }
+.cm-atom     { color: #bd93f9 !important; }
+
+/* ── FIX 2: Autocomplete dropdown styling ── */
+.CodeMirror-hints {
+  background: #1e2235 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,.5) !important;
+  padding: 4px !important;
+  font-family: 'JetBrains Mono', monospace !important;
+  font-size: calc(var(--fs) - 1px) !important;
+  z-index: 200 !important;
+}
+.CodeMirror-hint {
+  padding: 4px 12px !important;
+  border-radius: 5px !important;
+  color: var(--text) !important;
+}
+.CodeMirror-hint-active {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
 
 /* ── OUTPUT PANE ── */
-.output-pane{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);overflow:hidden;transition:width .2s}
-.output-pane.hidden{width:0;overflow:hidden;border:none}
-.output-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
-.output-tab{padding:7px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all .2s;font-weight:500;white-space:nowrap}
-.output-tab.active{color:var(--text);border-bottom-color:var(--accent)}
-.output-tab:hover:not(.active){color:var(--text)}
-.output-content{flex:1;overflow:auto;padding:12px}
-.output-box{display:none}
-.output-box.active{display:block}
-.output-pre{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
-.output-pre.stdout{color:var(--ok)}
-.output-pre.stderr{color:var(--err)}
-.output-pre.empty{color:var(--muted);font-style:italic}
-.run-indicator{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border);flex-shrink:0;min-height:32px}
-.spinner{width:11px;height:11px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:none}
-.spinner.active{display:block}
-@keyframes spin{to{transform:rotate(360deg)}}
-.exit-badge{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:3px}
-.exit-badge.ok{background:rgba(74,222,128,.15);color:var(--ok)}
-.exit-badge.err{background:rgba(248,113,113,.15);color:var(--err)}
+.output-pane {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  overflow: hidden;
+  transition: width .2s ease;
+}
+.output-pane.hidden { width: 0; overflow: hidden; border: none; }
+.output-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.output-tab {
+  padding: 7px 16px;
+  font-size: 12px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  transition: all .2s;
+  font-weight: 500;
+  white-space: nowrap;
+  user-select: none;
+}
+.output-tab.active       { color: var(--text); border-bottom-color: var(--accent); }
+.output-tab:hover:not(.active) { color: var(--text); }
+.output-content { flex: 1; overflow: auto; padding: 14px; }
+.output-box { display: none; }
+.output-box.active { display: block; }
+.output-pre {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.output-pre.stdout { color: var(--ok); }
+.output-pre.stderr { color: var(--err); }
+.output-pre.empty  { color: var(--muted); font-style: italic; }
+.run-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'JetBrains Mono', monospace;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  min-height: 32px;
+}
+.spinner {
+  width: 11px; height: 11px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  display: none;
+}
+.spinner.active { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.exit-badge {
+  margin-left: auto;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.exit-badge.ok  { background: rgba(74,222,128,.15); color: var(--ok); }
+.exit-badge.err { background: rgba(248,113,113,.15); color: var(--err); }
 
 /* ── LOG ── */
-.log-entry{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11.5px;font-family:'JetBrains Mono',monospace;align-items:flex-start}
-.log-entry:last-child{border:none}
-.log-time{color:var(--muted);flex-shrink:0;font-size:10px;padding-top:2px}
-.log-msg{flex:1;line-height:1.5}
+.log-entry {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,.04);
+  font-size: 11.5px;
+  font-family: 'JetBrains Mono', monospace;
+  align-items: flex-start;
+}
+.log-entry:last-child { border: none; }
+.log-time { color: var(--muted); flex-shrink: 0; font-size: 10px; padding-top: 2px; }
+.log-msg  { flex: 1; line-height: 1.5; }
 
-/* ── remote cursor (label fade) ── */
-.rc-label{transition:opacity .4s}
+/* remote cursor label fade */
+.rc-label { transition: opacity .35s; }
 
 /* scrollbar */
-::-webkit-scrollbar{width:5px;height:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 </style>
 </head>
 <body>
 
-<!-- TOPBAR -->
+<!-- ── TOPBAR ── -->
 <div class="topbar">
   <div class="logo">⟨/<span>CollabPy</span>⟩</div>
   <div class="topbar-mid">
@@ -181,32 +448,28 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
   </div>
 </div>
 
-<!-- TOOLBAR -->
+<!-- ── TOOLBAR ── -->
 <div class="toolbar">
-  <!-- cursor label toggle -->
-  <button class="icon-btn active" id="btnCursorLabel" title="แสดง/ซ่อนชื่อเคอร์เซอร์">👁 ชื่อเคอร์เซอร์</button>
+  <button class="icon-btn active" id="btnCursorLabel">👁 ชื่อเคอร์เซอร์</button>
   <div class="toolbar-sep"></div>
-  <!-- output panel toggle -->
-  <button class="icon-btn active" id="btnOutput" title="แสดง/ซ่อนแผงผลลัพธ์">📋 ผลลัพธ์</button>
-  <!-- log tab quick toggle -->
-  <button class="icon-btn" id="btnLog" title="เปิด log">📜 Log</button>
+  <button class="icon-btn active" id="btnOutput">📋 ผลลัพธ์</button>
+  <button class="icon-btn"        id="btnLog">📜 Log</button>
   <div class="toolbar-sep"></div>
-  <!-- font size -->
   <div class="fs-control">
-    <button class="fs-btn" id="fsDown" title="ลดขนาด">−</button>
+    <button class="fs-btn" id="fsDown">−</button>
     <span class="fs-label" id="fsLabel">14</span>
-    <button class="fs-btn" id="fsUp" title="เพิ่มขนาด">+</button>
+    <button class="fs-btn" id="fsUp">+</button>
   </div>
   <div class="toolbar-sep"></div>
-  <!-- shortcuts -->
   <button class="icon-btn" id="btnShortcuts">⌨️ คำสั่งลัด</button>
 </div>
 
-<!-- MAIN -->
+<!-- ── MAIN ── -->
 <div class="main">
   <div class="editor-pane">
     <div class="pane-header">
-      <span class="file-icon">●</span><span>main.py</span>
+      <span class="fi">●</span>
+      <span>main.py</span>
       <span style="margin-left:auto;font-size:10px" id="cursorPos">Ln 1, Col 1</span>
     </div>
     <div class="cm-wrap"><textarea id="editor"></textarea></div>
@@ -215,8 +478,8 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
   <div class="output-pane" id="outputPane">
     <div class="output-tabs">
       <div class="output-tab active" data-tab="stdout">stdout</div>
-      <div class="output-tab" data-tab="stderr">stderr</div>
-      <div class="output-tab" data-tab="log">log</div>
+      <div class="output-tab"        data-tab="stderr">stderr</div>
+      <div class="output-tab"        data-tab="log">log</div>
     </div>
     <div class="output-content">
       <div class="output-box active" id="box-stdout">
@@ -237,36 +500,103 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
   </div>
 </div>
 
-<!-- SHORTCUTS OVERLAY -->
-<div class="shortcuts-overlay" id="scOverlay">
-  <div class="shortcuts-box">
-    <h2>⌨️ คำสั่งลัด</h2>
+<!-- ── SHORTCUTS OVERLAY ── -->
+<div class="sc-overlay" id="scOverlay">
+  <div class="sc-box">
+    <h2>⌨️ คำสั่งลัดทั้งหมด</h2>
     <div class="sc-grid">
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Enter</span></span><span class="sc-desc">รันโค้ด</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">/</span></span><span class="sc-desc">comment บรรทัด</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Tab</span></span><span class="sc-desc">indent 4 ช่อง</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Shift</span><span class="kbd">Tab</span></span><span class="sc-desc">ลด indent</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Z</span></span><span class="sc-desc">undo</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Y</span></span><span class="sc-desc">redo</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">A</span></span><span class="sc-desc">เลือกทั้งหมด</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">D</span></span><span class="sc-desc">ลบบรรทัด</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Alt</span><span class="kbd">↑</span></span><span class="sc-desc">เลื่อนบรรทัดขึ้น</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Alt</span><span class="kbd">↓</span></span><span class="sc-desc">เลื่อนบรรทัดลง</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">+</span><span class="kbd">−</span> toolbar</span><span class="sc-desc">ขนาดตัวอักษร</span></div>
-      <div class="sc-row"><span class="sc-key"><span class="kbd">Esc</span></span><span class="sc-desc">ปิดหน้าต่างนี้</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">Enter</span></span><span class="sc-desc">รันโค้ด</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">Space</span></span><span class="sc-desc">เปิด autocomplete</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">/</span></span><span class="sc-desc">comment บรรทัด</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Tab</span></span><span class="sc-desc">indent 4 ช่อง</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Shift</span><span class="kbd">Tab</span></span><span class="sc-desc">ลด indent</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Alt</span><span class="kbd">↑ / ↓</span></span><span class="sc-desc">ย้ายบรรทัด</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">D</span></span><span class="sc-desc">ลบบรรทัด</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">Z</span></span><span class="sc-desc">undo</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">Ctrl</span><span class="kbd">Y</span></span><span class="sc-desc">redo</span></div>
+      <div class="sc-row"><span class="sc-keys"><span class="kbd">+ / −</span> toolbar</span><span class="sc-desc">ขนาดตัวอักษร</span></div>
     </div>
-    <button class="close-btn" id="scClose">ปิด</button>
+    <button class="sc-close" id="scClose">ปิด</button>
   </div>
 </div>
 
 <script>
-// ── CONFIG ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════════════
 const WS_BASE = (() => {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   return `${proto}://${location.host}`;
 })();
 
-// ── CodeMirror ───────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  FIX 2: PYTHON AUTOCOMPLETE DICTIONARY
+// ═══════════════════════════════════════════════════════════════
+const PY_KEYWORDS = [
+  // keywords
+  'False','None','True','and','as','assert','async','await',
+  'break','class','continue','def','del','elif','else','except',
+  'finally','for','from','global','if','import','in','is',
+  'lambda','nonlocal','not','or','pass','raise','return',
+  'try','while','with','yield',
+  // builtins
+  'abs','all','any','bin','bool','breakpoint','bytearray','bytes',
+  'callable','chr','classmethod','compile','complex','delattr',
+  'dict','dir','divmod','enumerate','eval','exec','filter','float',
+  'format','frozenset','getattr','globals','hasattr','hash','help',
+  'hex','id','input','int','isinstance','issubclass','iter','len',
+  'list','locals','map','max','memoryview','min','next','object',
+  'oct','open','ord','pow','print','property','range','repr',
+  'reversed','round','set','setattr','slice','sorted','staticmethod',
+  'str','sum','super','tuple','type','vars','zip',
+  // callable forms (with parens)
+  'print()','input()','len()','range()','int()','str()','float()',
+  'list()','dict()','set()','tuple()','type()','isinstance()',
+  'enumerate()','zip()','map()','filter()','sorted()','reversed()',
+  'open()',
+  // dunder
+  '__init__','__str__','__repr__','__len__','__main__',
+  // common identifiers
+  'self','cls','args','kwargs','*args','**kwargs',
+  // common import lines
+  'import os','import sys','import math','import random',
+  'import json','import re','import time','import datetime',
+  'from os import','from sys import',
+];
+
+/**
+ * pythonHint — custom hint function passed to CodeMirror show-hint addon.
+ * Merges PY_KEYWORDS with words already present in the document for
+ * context-aware completions.
+ */
+function pythonHint(editor) {
+  const cur  = editor.getCursor();
+  const line = editor.getLine(cur.line);
+  // find start of token being typed (word chars + dot)
+  let start = cur.ch;
+  while (start > 0 && /[\w.]/.test(line[start - 1])) start--;
+  const word = line.slice(start, cur.ch).toLowerCase();
+  if (!word) return null;
+
+  // harvest words already in the doc
+  const docWords = new Set();
+  for (let i = 0; i <= editor.lastLine(); i++) {
+    editor.getLine(i).split(/\W+/).forEach(w => { if (w.length > 1) docWords.add(w); });
+  }
+  const all  = [...new Set([...PY_KEYWORDS, ...docWords])];
+  const list = all.filter(w => w.toLowerCase().startsWith(word) && w !== word);
+  if (!list.length) return null;
+
+  return {
+    list,
+    from: CodeMirror.Pos(cur.line, start),
+    to:   CodeMirror.Pos(cur.line, cur.ch),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  CODEMIRROR SETUP
+// ═══════════════════════════════════════════════════════════════
 const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
   mode: 'python',
   theme: 'dracula',
@@ -277,51 +607,63 @@ const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
   matchBrackets: true,
   styleActiveLine: true,
   lineWrapping: false,
+  hintOptions: { hint: pythonHint, completeSingle: false },
   extraKeys: {
-    'Tab':        (cm) => cm.replaceSelection('    '),
+    'Tab':        cm => cm.replaceSelection('    '),
     'Shift-Tab':  'indentLess',
     'Ctrl-/':     'toggleComment',
     'Cmd-/':      'toggleComment',
     'Ctrl-Enter': () => runCode(),
     'Cmd-Enter':  () => runCode(),
-    'Ctrl-D':     (cm) => { const cur = cm.getCursor(); cm.deleteLine(cur.line); },
-    'Alt-Up':     (cm) => moveLine(cm, -1),
-    'Alt-Down':   (cm) => moveLine(cm, 1),
+    'Ctrl-Space': cm => cm.showHint(),      // manual trigger
+    'Ctrl-D':     cm => { const c = cm.getCursor(); cm.deleteLine(c.line); },
+    'Alt-Up':     cm => moveLine(cm, -1),
+    'Alt-Down':   cm => moveLine(cm,  1),
+  }
+});
+
+// FIX 2: auto-hint fires on every letter/dot keystroke
+cm.on('inputRead', (editor, change) => {
+  if (suppressChange) return;
+  if (change.text[0] && /[\w.]/.test(change.text[0])) {
+    editor.showHint({ hint: pythonHint, completeSingle: false });
   }
 });
 
 function moveLine(cm, dir) {
   const cur = cm.getCursor();
   const line = cur.line;
-  const total = cm.lastLine();
-  const target = line + dir;
-  if (target < 0 || target > total) return;
-  const a = cm.getLine(line);
-  const b = cm.getLine(target);
+  const tgt  = line + dir;
+  if (tgt < 0 || tgt > cm.lastLine()) return;
+  const a = cm.getLine(line), b = cm.getLine(tgt);
   cm.operation(() => {
-    cm.replaceRange(b, {line, ch:0}, {line, ch:a.length});
-    cm.replaceRange(a, {line:target, ch:0}, {line:target, ch:b.length});
-    cm.setCursor({line:target, ch:cur.ch});
+    cm.replaceRange(b, {line, ch:0},     {line,   ch: a.length});
+    cm.replaceRange(a, {line:tgt, ch:0}, {line:tgt, ch: b.length});
+    cm.setCursor({line: tgt, ch: cur.ch});
   });
 }
 
-// ── State ────────────────────────────────────────────────────
-let ws = null;
-let myUserId = 'user_' + Math.random().toString(36).slice(2, 7);
-let myColor  = '#ffffff';
-let remoteCursors  = {};
-let remoteMarkers  = {};
-let suppressChange = false;
-let isRunning      = false;
-let reconnectTimer = null;
+// ═══════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════
+let ws              = null;
+let myUserId        = 'user_' + Math.random().toString(36).slice(2, 7);
+let myColor         = '#ffffff';
+let remoteCursors   = {};
+let remoteMarkers   = {};
+let suppressChange  = false;
+let isRunning       = false;
+let reconnectTimer  = null;
 let intentionalClose = false;
-let lastSentCode   = null;
+let serverDoc       = '';   // last known server state (FIX 3)
 let showCursorLabels = true;
 let fontSize = parseInt(localStorage.getItem('cp_fs') || '14');
 
-// ── Font Size ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  FONT SIZE
+// ═══════════════════════════════════════════════════════════════
 function applyFontSize(n) {
-  fontSize = Math.max(10, Math.min(24, n));
+  fontSize = Math.max(10, Math.min(26, n));
   document.documentElement.style.setProperty('--fs', fontSize + 'px');
   cm.refresh();
   document.getElementById('fsLabel').textContent = fontSize;
@@ -331,19 +673,18 @@ applyFontSize(fontSize);
 document.getElementById('fsUp').onclick   = () => applyFontSize(fontSize + 1);
 document.getElementById('fsDown').onclick = () => applyFontSize(fontSize - 1);
 
-// ── Cursor Label Toggle ───────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  TOOLBAR TOGGLES
+// ═══════════════════════════════════════════════════════════════
 const btnCursorLabel = document.getElementById('btnCursorLabel');
 btnCursorLabel.onclick = () => {
   showCursorLabels = !showCursorLabels;
   btnCursorLabel.classList.toggle('active', showCursorLabels);
-  // fade all labels
   document.querySelectorAll('.rc-label').forEach(el => {
     el.style.opacity = showCursorLabels ? '1' : '0';
-    el.style.pointerEvents = showCursorLabels ? '' : 'none';
   });
 };
 
-// ── Output Panel Toggle ───────────────────────────────────────
 const outputPane = document.getElementById('outputPane');
 const btnOutput  = document.getElementById('btnOutput');
 btnOutput.onclick = () => {
@@ -351,51 +692,49 @@ btnOutput.onclick = () => {
   btnOutput.classList.toggle('active', !hidden);
 };
 
-// ── Log quick switch ──────────────────────────────────────────
 document.getElementById('btnLog').onclick = () => {
   if (outputPane.classList.contains('hidden')) {
     outputPane.classList.remove('hidden');
     btnOutput.classList.add('active');
   }
   switchTab('log');
-  document.getElementById('btnLog').classList.toggle('active');
 };
 
-// ── Shortcuts Overlay ─────────────────────────────────────────
 const scOverlay = document.getElementById('scOverlay');
 document.getElementById('btnShortcuts').onclick = () => scOverlay.classList.add('open');
 document.getElementById('scClose').onclick      = () => scOverlay.classList.remove('open');
-document.addEventListener('keydown', e => { if (e.key === 'Escape') scOverlay.classList.remove('open'); });
 scOverlay.addEventListener('click', e => { if (e.target === scOverlay) scOverlay.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') scOverlay.classList.remove('open'); });
 
-// ── Cursor position display ───────────────────────────────────
-cm.on('cursorActivity', () => {
-  const c = cm.getCursor();
-  document.getElementById('cursorPos').textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
-  sendCursor(c);
-  sendSelection();
-});
-
-// ── Name Input ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  NAME INPUT
+// ═══════════════════════════════════════════════════════════════
 const nameInput = document.getElementById('nameInput');
 nameInput.value = localStorage.getItem('cp_name') || '';
-nameInput.addEventListener('input',   () => localStorage.setItem('cp_name', nameInput.value.trim()));
-nameInput.addEventListener('blur',    () => { const id = nameInput.value.trim() || myUserId; if (id !== getMyId()) { myUserId = id; reconnect(); } });
+nameInput.addEventListener('input', () => localStorage.setItem('cp_name', nameInput.value.trim()));
+nameInput.addEventListener('blur', () => {
+  const id = nameInput.value.trim() || myUserId;
+  if (id !== getMyId()) { myUserId = id; reconnect(); }
+});
 nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
+function getMyId() { return nameInput.value.trim() || myUserId; }
 
-// ── WebSocket ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  WEBSOCKET
+// ═══════════════════════════════════════════════════════════════
 function connect() {
   intentionalClose = false;
-  const uid = encodeURIComponent(nameInput.value.trim() || myUserId);
+  const uid = encodeURIComponent(getMyId());
   ws = new WebSocket(`${WS_BASE}/ws/${uid}`);
-  ws.onopen  = () => { setConnected(true); addLog('🔌 เชื่อมต่อสำเร็จ', '#4ade80'); };
-  ws.onclose = () => {
+  ws.onopen    = () => { setConnected(true); addLog('🔌 เชื่อมต่อสำเร็จ', '#4ade80'); };
+  ws.onclose   = () => {
     setConnected(false);
     if (intentionalClose) return;
     addLog('❌ หลุด — กำลังต่อใหม่...', '#f87171');
+    clearTimeout(reconnectTimer);
     reconnectTimer = setTimeout(connect, 3000);
   };
-  ws.onerror  = () => addLog('⚠️ WebSocket error', '#fbbf24');
+  ws.onerror   = () => addLog('⚠️ WebSocket error', '#fbbf24');
   ws.onmessage = e => handleMessage(JSON.parse(e.data));
 }
 function reconnect() {
@@ -407,70 +746,96 @@ function reconnect() {
 function send(obj) {
   if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
-function getMyId() { return nameInput.value.trim() || myUserId; }
 
-// ── Message Handler ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  MESSAGE HANDLER
+// ═══════════════════════════════════════════════════════════════
 function handleMessage(msg) {
   switch (msg.type) {
+
     case 'init':
       myColor = msg.your_color;
       suppressChange = true;
       cm.setValue(msg.code);
-      lastSentCode = msg.code;
+      serverDoc = msg.code;
       suppressChange = false;
       renderAllCursors(msg.cursors, msg.user_id);
       addLog('📄 โหลดโค้ดปัจจุบันแล้ว', '#64748b');
       break;
+
     case 'code_change':
-      if (msg.code === lastSentCode) break;
-      if (msg.from !== getMyId()) applyRemoteCode(msg.code);
+      if (msg.from === getMyId()) break;    // skip own echo
+      if (msg.code === serverDoc)   break;  // no-op
+      applyRemoteCode(msg.code);
       break;
+
     case 'cursor_update':
       updateRemoteCursor(msg.user_id, msg.line, msg.ch, msg.color, msg.name);
       updateUserPill(msg.user_id, msg.color, msg.name);
       break;
+
     case 'selection':
       updateRemoteSelection(msg.user_id, msg.from, msg.to, msg.color);
       break;
+
     case 'user_joined':
       addLog(`👤 ${msg.name} เข้าร่วม`, msg.color);
       updateUserPill(msg.user_id, msg.color, msg.name);
       renderAllCursors(msg.cursors, getMyId());
       break;
+
     case 'user_left':
       addLog(`👋 ${msg.user_id} ออก`, '#64748b');
       removeRemoteCursor(msg.user_id);
       removeUserPill(msg.user_id);
       break;
+
     case 'run_start':
       isRunning = true; setRunning(true, msg.user_id); break;
+
     case 'run_result':
       isRunning = false; setRunning(false, msg.user_id);
       showOutput(msg.stdout, msg.stderr, msg.exit_code); break;
   }
 }
 
-// ── Code Change ───────────────────────────────────────────────
-// Operational transform: we batch our own changes and debounce slightly
-// so rapid typing doesn't fight with incoming remote edits
+// ═══════════════════════════════════════════════════════════════
+//  FIX 3: CONFLICT-FREE LOCAL → REMOTE SEND
+//  Debounce outgoing changes so rapid keystrokes are batched into
+//  one message.  We track serverDoc so incoming remote changes
+//  that match what we already have are silently dropped.
+// ═══════════════════════════════════════════════════════════════
 let sendTimer = null;
 cm.on('change', () => {
   if (suppressChange) return;
   clearTimeout(sendTimer);
   sendTimer = setTimeout(() => {
     const code = cm.getValue();
-    lastSentCode = code;
+    serverDoc = code;          // optimistic — treat as accepted
     send({ type: 'code_change', code });
-  }, 30); // 30ms debounce — feels instant but batches keystrokes
+  }, 50);   // 50 ms batches keystrokes; feels instant
 });
 
+// ═══════════════════════════════════════════════════════════════
+//  FIX 3: APPLY REMOTE CODE — cursor-preserving, non-destructive
+//  Uses cm.replaceRange() over the whole doc range instead of
+//  cm.setValue(), which avoids a full view reset and keeps the
+//  local caret in place.
+// ═══════════════════════════════════════════════════════════════
 function applyRemoteCode(newCode) {
+  if (cm.getValue() === newCode) return;
+
   const cur    = cm.getCursor();
   const scroll = cm.getScrollInfo();
+
   suppressChange = true;
   cm.operation(() => {
-    if (cm.getValue() === newCode) return;
-    cm.setValue(newCode);
+    const last    = cm.lastLine();
+    const lastLen = cm.getLine(last).length;
+    // replace entire content without a full setValue reset
+    cm.replaceRange(newCode, {line:0, ch:0}, {line:last, ch:lastLen});
+
+    // clamp cursor back to valid position
     const ll = cm.lastLine();
     const sl = Math.min(cur.line, ll);
     const sc = Math.min(cur.ch, cm.getLine(sl)?.length ?? 0);
@@ -478,35 +843,50 @@ function applyRemoteCode(newCode) {
     cm.scrollTo(scroll.left, scroll.top);
   });
   suppressChange = false;
-  lastSentCode = newCode;
+  serverDoc = newCode;
 }
 
-// ── Cursor & Selection ────────────────────────────────────────
-function sendCursor(cur) {
-  send({ type: 'cursor_move', line: cur.line, ch: cur.ch });
-}
-function sendSelection() {
+// ═══════════════════════════════════════════════════════════════
+//  CURSOR POS DISPLAY + SYNC
+// ═══════════════════════════════════════════════════════════════
+cm.on('cursorActivity', () => {
+  const c = cm.getCursor();
+  document.getElementById('cursorPos').textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
+  send({ type: 'cursor_move', line: c.line, ch: c.ch });
+  // selection broadcast
   const sel = cm.listSelections()[0];
-  if (sel && !posEq(sel.anchor, sel.head)) {
-    send({ type: 'selection', from: posMin(sel.anchor, sel.head), to: posMax(sel.anchor, sel.head) });
+  if (sel) {
+    const a = sel.anchor, h = sel.head;
+    if (!(a.line === h.line && a.ch === h.ch)) {
+      const from = (a.line < h.line || (a.line === h.line && a.ch <= h.ch)) ? a : h;
+      const to   = (from === a) ? h : a;
+      send({ type: 'selection', from, to });
+    }
   }
-}
-const posEq  = (a,b) => a.line===b.line && a.ch===b.ch;
-const posMin = (a,b) => (a.line<b.line||(a.line===b.line&&a.ch<=b.ch)) ? a : b;
-const posMax = (a,b) => posMin(a,b)===a ? b : a;
+});
 
-// ── Remote Cursors ────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  REMOTE CURSORS
+// ═══════════════════════════════════════════════════════════════
 function updateRemoteCursor(uid, line, ch, color, name) {
   if (uid === getMyId()) return;
-  if (remoteCursors[uid]) { remoteCursors[uid].clear(); }
+  remoteCursors[uid]?.clear();
 
   const wrap = document.createElement('span');
-  wrap.style.cssText = `display:inline-block;width:2px;height:1.5em;background:${color};position:relative;vertical-align:text-bottom;margin-left:-1px`;
-
+  wrap.style.cssText = `
+    display:inline-block;width:2px;height:1.65em;background:${color};
+    position:relative;vertical-align:text-bottom;margin-left:-1px;border-radius:1px;
+  `;
   const label = document.createElement('span');
   label.className = 'rc-label';
   label.textContent = name;
-  label.style.cssText = `position:absolute;bottom:100%;left:0;background:${color};color:#000;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;padding:1px 5px;border-radius:3px 3px 3px 0;white-space:nowrap;pointer-events:none;z-index:99;margin-bottom:2px;opacity:${showCursorLabels?1:0}`;
+  label.style.cssText = `
+    position:absolute;bottom:100%;left:0;background:${color};color:#000;
+    font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;
+    padding:1px 5px;border-radius:3px 3px 3px 0;white-space:nowrap;
+    pointer-events:none;z-index:99;margin-bottom:2px;
+    opacity:${showCursorLabels ? 1 : 0};
+  `;
   wrap.appendChild(label);
 
   const dl = Math.min(line, cm.lastLine());
@@ -521,7 +901,10 @@ function removeRemoteCursor(uid) {
 
 function renderAllCursors(cursors, myId) {
   Object.entries(cursors).forEach(([uid, c]) => {
-    if (uid !== myId) { updateRemoteCursor(uid, c.line, c.ch, c.color, c.name); updateUserPill(uid, c.color, c.name); }
+    if (uid !== myId) {
+      updateRemoteCursor(uid, c.line, c.ch, c.color, c.name);
+      updateUserPill(uid, c.color, c.name);
+    }
   });
 }
 
@@ -529,36 +912,55 @@ function updateRemoteSelection(uid, from, to, color) {
   if (uid === getMyId()) return;
   remoteMarkers[uid]?.clear();
   try {
-    const m = cm.markText(from, to, { css:`background:${color}30;border-radius:2px`, inclusiveLeft:false, inclusiveRight:false });
+    const m = cm.markText(from, to, {
+      css: `background:${color}28;border-radius:2px;`,
+      inclusiveLeft: false,
+      inclusiveRight: false,
+    });
     remoteMarkers[uid] = m;
     setTimeout(() => { try { m.clear(); } catch(e){} }, 4000);
   } catch(e){}
 }
 
-// ── Users Bar ─────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  USERS BAR
+// ═══════════════════════════════════════════════════════════════
+function pillId(uid) { return 'pill_' + uid.replace(/[^a-z0-9]/gi, '_'); }
 function updateUserPill(uid, color, name) {
   const bar = document.getElementById('usersBar');
-  let p = document.getElementById('pill_' + uid.replace(/[^a-z0-9]/gi,'_'));
-  if (!p) { p = document.createElement('div'); p.id = 'pill_' + uid.replace(/[^a-z0-9]/gi,'_'); p.className='user-pill active'; bar.appendChild(p); }
+  let p = document.getElementById(pillId(uid));
+  if (!p) {
+    p = document.createElement('div');
+    p.id = pillId(uid);
+    p.className = 'user-pill active';
+    bar.appendChild(p);
+  }
   p.innerHTML = `<span class="dot" style="background:${color}"></span>${name}`;
   p.style.borderColor = color + '44';
 }
 function removeUserPill(uid) {
-  const p = document.getElementById('pill_' + uid.replace(/[^a-z0-9]/gi,'_'));
-  if (p) { p.className='user-pill inactive'; setTimeout(()=>p.remove(), 2000); }
+  const p = document.getElementById(pillId(uid));
+  if (p) { p.className = 'user-pill inactive'; setTimeout(() => p.remove(), 2000); }
 }
 
-// ── Run Code ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  RUN CODE
+// ═══════════════════════════════════════════════════════════════
 document.getElementById('runBtn').addEventListener('click', runCode);
-function runCode() { if (!isRunning) send({type:'run_code'}); }
+function runCode() { if (!isRunning) send({ type: 'run_code' }); }
 
 function setRunning(running, whoId) {
   isRunning = running;
   document.getElementById('runBtn').disabled = running;
   document.getElementById('spinner').classList.toggle('active', running);
   const who = whoId === getMyId() ? 'คุณ' : whoId;
-  if (running) { document.getElementById('runStatus').textContent = `${who} กำลังรัน…`; document.getElementById('exitBadge').style.display='none'; addLog(`▶ ${who} รันโค้ด`,'#fbbf24'); }
-  else { document.getElementById('runStatus').textContent = 'พร้อมรัน'; }
+  if (running) {
+    document.getElementById('runStatus').textContent = `${who} กำลังรัน…`;
+    document.getElementById('exitBadge').style.display = 'none';
+    addLog(`▶ ${who} รันโค้ด`, '#fbbf24');
+  } else {
+    document.getElementById('runStatus').textContent = 'พร้อมรัน';
+  }
 }
 
 function showOutput(stdout, stderr, code) {
@@ -570,39 +972,61 @@ function showOutput(stdout, stderr, code) {
   pe.className   = stderr ? 'output-pre stderr' : 'output-pre empty';
   if (stderr) switchTab('stderr'); else if (stdout) switchTab('stdout');
   const b = document.getElementById('exitBadge');
-  b.style.display='inline'; b.textContent=`exit ${code}`; b.className='exit-badge '+(code===0?'ok':'err');
-  addLog((code===0?'✅':'❌')+` รันเสร็จ exit ${code}`, code===0?'#4ade80':'#f87171');
-  // auto-show output panel if hidden
-  if (outputPane.classList.contains('hidden')) { outputPane.classList.remove('hidden'); btnOutput.classList.add('active'); }
+  b.style.display = 'inline';
+  b.textContent   = `exit ${code}`;
+  b.className     = 'exit-badge ' + (code === 0 ? 'ok' : 'err');
+  addLog((code === 0 ? '✅' : '❌') + ` รันเสร็จ exit ${code}`, code === 0 ? '#4ade80' : '#f87171');
+  if (outputPane.classList.contains('hidden')) {
+    outputPane.classList.remove('hidden');
+    btnOutput.classList.add('active');
+  }
 }
 
-// ── Tabs ──────────────────────────────────────────────────────
-document.querySelectorAll('.output-tab').forEach(t => t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
+// ═══════════════════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════════════════
+document.querySelectorAll('.output-tab').forEach(t =>
+  t.addEventListener('click', () => switchTab(t.dataset.tab))
+);
 function switchTab(name) {
-  document.querySelectorAll('.output-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-  document.querySelectorAll('.output-box').forEach(b=>b.classList.toggle('active',b.id==='box-'+name));
+  document.querySelectorAll('.output-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name)
+  );
+  document.querySelectorAll('.output-box').forEach(b =>
+    b.classList.toggle('active', b.id === 'box-' + name)
+  );
 }
 
-// ── Log ───────────────────────────────────────────────────────
-function addLog(msg, color='#e2e8f0') {
+// ═══════════════════════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════════════════════
+function addLog(msg, color = '#e2e8f0') {
   const list = document.getElementById('logList');
-  const e = document.createElement('div'); e.className='log-entry';
-  const t = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  e.innerHTML=`<span class="log-time">${t}</span><span class="log-msg" style="color:${color}">${msg}</span>`;
-  list.appendChild(e); list.scrollTop=list.scrollHeight;
+  const e = document.createElement('div');
+  e.className = 'log-entry';
+  const t = new Date().toLocaleTimeString('th-TH', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  });
+  e.innerHTML = `<span class="log-time">${t}</span><span class="log-msg" style="color:${color}">${msg}</span>`;
+  list.appendChild(e);
+  list.scrollTop = list.scrollHeight;
 }
 
-// ── UI Helpers ────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════════════
 function setConnected(ok) {
-  document.getElementById('statusDot').style.cssText = ok
-    ? 'background:var(--ok);box-shadow:0 0 5px var(--ok)'
-    : 'background:#f87171;box-shadow:0 0 5px #f87171';
+  const dot = document.getElementById('statusDot');
+  dot.style.background = ok ? 'var(--ok)' : '#f87171';
+  dot.style.boxShadow  = ok ? '0 0 5px var(--ok)' : '0 0 5px #f87171';
   const b = document.getElementById('connBadge');
   b.textContent = ok ? 'ออนไลน์' : 'ออฟไลน์';
-  b.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
+  b.className   = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
 }
 
-// ── Init ──────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════
 connect();
 </script>
 </body>

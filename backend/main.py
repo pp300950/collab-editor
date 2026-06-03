@@ -26,18 +26,19 @@ frontend_path = os.path.join(os.path.dirname(__file__), "..", "frontend")
 if os.path.exists(frontend_path):
     app.mount("/static", StaticFiles(directory=frontend_path), name="static")
 
-# ---- State ----
+# ── State ──────────────────────────────────────────────────────
 shared_code: str = '# Welcome to CollabPy!\nprint("Hello, World!")\n'
-connections: Dict[str, WebSocket] = {}  # user_id -> websocket
-user_cursors: Dict[str, dict] = {}       # user_id -> {line, ch, name, color}
+connections: Dict[str, WebSocket] = {}   # user_id -> websocket
+user_cursors: Dict[str, dict]    = {}    # user_id -> {line, ch, name, color}
 
 COLORS = [
     "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4",
     "#FFEAA7", "#DDA0DD", "#98D8C8", "#F7DC6F"
 ]
 
+
 async def broadcast(message: dict, exclude: str = None):
-    """Send message to all connected clients except excluded one."""
+    """Send a message to all connected clients, optionally skipping one."""
     dead = []
     for uid, ws in connections.items():
         if uid == exclude:
@@ -50,6 +51,7 @@ async def broadcast(message: dict, exclude: str = None):
         connections.pop(uid, None)
         user_cursors.pop(uid, None)
 
+
 @app.get("/")
 async def root():
     index = os.path.join(frontend_path, "index.html")
@@ -57,34 +59,35 @@ async def root():
         return FileResponse(index)
     return {"status": "CollabPy backend running"}
 
+
 @app.websocket("/ws/{user_id}")
 async def websocket_endpoint(websocket: WebSocket, user_id: str):
     global shared_code
 
     await websocket.accept()
 
-    # Assign color
+    # Assign a color based on current connection count
     color_index = len(connections) % len(COLORS)
     color = COLORS[color_index]
 
     connections[user_id] = websocket
     user_cursors[user_id] = {"line": 0, "ch": 0, "name": user_id, "color": color}
 
-    # Send current state to the new user
+    # ── Send current state to the joining user ──
     await websocket.send_json({
-        "type": "init",
-        "code": shared_code,
-        "cursors": user_cursors,
+        "type":       "init",
+        "code":       shared_code,
+        "cursors":    user_cursors,
         "your_color": color,
-        "user_id": user_id,
+        "user_id":    user_id,
     })
 
-    # Notify others
+    # ── Notify everyone else ──
     await broadcast({
-        "type": "user_joined",
+        "type":    "user_joined",
         "user_id": user_id,
-        "color": color,
-        "name": user_id,
+        "color":   color,
+        "name":    user_id,
         "cursors": user_cursors,
     }, exclude=user_id)
 
@@ -93,6 +96,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
             data = await websocket.receive_json()
             msg_type = data.get("type")
 
+            # ── Code change ──────────────────────────────────────
             if msg_type == "code_change":
                 shared_code = data["code"]
                 await broadcast({
@@ -101,65 +105,69 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                     "from": user_id,
                 }, exclude=user_id)
 
+            # ── Cursor movement ──────────────────────────────────
             elif msg_type == "cursor_move":
                 user_cursors[user_id] = {
-                    "line": data["line"],
-                    "ch": data["ch"],
-                    "name": user_id,
+                    "line":  data["line"],
+                    "ch":    data["ch"],
+                    "name":  user_id,
                     "color": color,
                 }
                 await broadcast({
-                    "type": "cursor_update",
+                    "type":    "cursor_update",
                     "user_id": user_id,
-                    "line": data["line"],
-                    "ch": data["ch"],
-                    "color": color,
-                    "name": user_id,
+                    "line":    data["line"],
+                    "ch":      data["ch"],
+                    "color":   color,
+                    "name":    user_id,
                 }, exclude=user_id)
 
+            # ── Selection ────────────────────────────────────────
             elif msg_type == "selection":
                 await broadcast({
-                    "type": "selection",
+                    "type":    "selection",
                     "user_id": user_id,
-                    "from": data["from"],
-                    "to": data["to"],
-                    "color": color,
-                    "name": user_id,
+                    "from":    data["from"],
+                    "to":      data["to"],
+                    "color":   color,
+                    "name":    user_id,
                 }, exclude=user_id)
 
+            # ── Run code ─────────────────────────────────────────
             elif msg_type == "run_code":
-                # Run Python code safely
+                # Notify all users that execution has started
                 await broadcast({
-                    "type": "run_start",
+                    "type":    "run_start",
                     "user_id": user_id,
-                }, )  # tell everyone
+                })
 
                 output = await run_python(shared_code)
 
                 await broadcast({
-                    "type": "run_result",
-                    "stdout": output["stdout"],
-                    "stderr": output["stderr"],
+                    "type":      "run_result",
+                    "stdout":    output["stdout"],
+                    "stderr":    output["stderr"],
                     "exit_code": output["exit_code"],
-                    "user_id": user_id,
+                    "user_id":   user_id,
                 })
 
     except WebSocketDisconnect:
         pass
     except Exception as e:
-        print(f"Error for {user_id}: {e}")
+        print(f"[error] {user_id}: {e}")
     finally:
         connections.pop(user_id, None)
         user_cursors.pop(user_id, None)
         await broadcast({
-            "type": "user_left",
+            "type":    "user_left",
             "user_id": user_id,
             "cursors": user_cursors,
         })
 
 
 async def run_python(code: str) -> dict:
-    """Execute Python code in a subprocess with timeout."""
+    """Execute Python code in a subprocess with a 10-second timeout."""
+    tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(
             mode="w", suffix=".py", delete=False, encoding="utf-8"
@@ -177,20 +185,27 @@ async def run_python(code: str) -> dict:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10.0)
         except asyncio.TimeoutError:
             proc.kill()
-            return {"stdout": "", "stderr": "⏱ Timeout: code ran for more than 10 seconds", "exit_code": -1}
+            return {
+                "stdout":    "",
+                "stderr":    "⏱ Timeout: code ran for more than 10 seconds",
+                "exit_code": -1,
+            }
 
         return {
-            "stdout": stdout.decode("utf-8", errors="replace"),
-            "stderr": stderr.decode("utf-8", errors="replace"),
+            "stdout":    stdout.decode("utf-8", errors="replace"),
+            "stderr":    stderr.decode("utf-8", errors="replace"),
             "exit_code": proc.returncode,
         }
+
     except Exception as e:
         return {"stdout": "", "stderr": str(e), "exit_code": -1}
+
     finally:
-        try:
-            os.unlink(tmp_path)
-        except Exception:
-            pass
+        if tmp_path:
+            try:
+                os.unlink(tmp_path)
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
