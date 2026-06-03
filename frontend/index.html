@@ -362,9 +362,19 @@ body {
 }
 .output-tab.active       { color: var(--text); border-bottom-color: var(--accent); }
 .output-tab:hover:not(.active) { color: var(--text); }
-.output-content { flex: 1; overflow: auto; padding: 14px; }
+.output-content { flex: 1; overflow: auto; padding: 14px; display: flex; flex-direction: column; }
 .output-box { display: none; }
 .output-box.active { display: block; }
+/* terminal tab fills the whole pane */
+#box-stdin { flex: 1; overflow: hidden; margin: -14px; }
+#box-stdin.active { display: flex !important; }
+/* blinking cursor in terminal */
+@keyframes termBlink { 0%,100%{opacity:1} 50%{opacity:0} }
+.term-cursor { display:inline-block; width:7px; height:1em; background:var(--text); vertical-align:text-bottom; animation: termBlink 1s step-end infinite; }
+.term-stdout { color: #50fa7b; }
+.term-stderr { color: #ff5555; }
+.term-echo   { color: var(--accent2); }
+.term-info   { color: var(--muted); font-style: italic; }
 .output-pre {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12.5px;
@@ -375,7 +385,7 @@ body {
 .output-pre.stdout { color: var(--ok); }
 .output-pre.stderr { color: var(--err); }
 .output-pre.empty  { color: var(--muted); font-style: italic; }
-#stdinArea:focus   { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(78,205,196,.15); }
+#termInput::placeholder { color: var(--muted); }
 .run-indicator {
   display: flex;
   align-items: center;
@@ -480,7 +490,7 @@ body {
     <div class="output-tabs">
       <div class="output-tab active" data-tab="stdout">stdout</div>
       <div class="output-tab"        data-tab="stderr">stderr</div>
-      <div class="output-tab"        data-tab="stdin">📥 stdin</div>
+      <div class="output-tab"        data-tab="stdin" id="termTab">⌨️ terminal</div>
       <div class="output-tab"        data-tab="log">log</div>
     </div>
     <div class="output-content">
@@ -490,30 +500,47 @@ body {
       <div class="output-box" id="box-stderr">
         <pre class="output-pre empty" id="pre-stderr">// ไม่มี error</pre>
       </div>
-      <div class="output-box" id="box-stdin">
-        <div style="margin-bottom:8px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">
-          พิมพ์ค่า input() ด้านล่าง — แต่ละบรรทัด = หนึ่งครั้งที่ input() ถูกเรียก
-        </div>
-        <textarea
-          id="stdinArea"
-          placeholder="เช่น&#10;42&#10;hello world&#10;1 2 3"
-          spellcheck="false"
+      <div class="output-box" id="box-stdin" style="display:flex;flex-direction:column;height:100%;padding:0;">
+        <!-- Terminal output scroll area -->
+        <div id="termOutput"
           style="
-            width:100%;height:calc(100% - 36px);
-            min-height:160px;
-            background:#0f1219;
-            color:#50fa7b;
-            border:1px solid var(--border);
-            border-radius:7px;
-            padding:10px 12px;
+            flex:1;overflow-y:auto;
+            background:#0b0e15;
+            padding:10px 12px 4px;
             font-family:'JetBrains Mono',monospace;
-            font-size:12.5px;
-            line-height:1.7;
-            resize:none;
-            outline:none;
-            caret-color:#e2e8f0;
+            font-size:12.5px;line-height:1.7;
+            word-break:break-word;white-space:pre-wrap;
           "
-        ></textarea>
+        ><span style="color:var(--muted);font-style:italic;">▸ terminal พร้อมใช้งาน — กด รันโค้ด เพื่อเริ่ม</span>
+</div>
+        <!-- Input row (shown only when waiting for input) -->
+        <div id="termInputRow" style="
+          display:flex;align-items:center;gap:0;
+          border-top:1px solid var(--border);
+          background:#0b0e15;flex-shrink:0;
+          padding:0 0 0 12px;
+        ">
+          <span id="termPrompt" style="
+            color:var(--accent2);font-family:'JetBrains Mono',monospace;
+            font-size:12.5px;user-select:none;flex-shrink:0;
+          ">❯ </span>
+          <input id="termInput" type="text" autocomplete="off" spellcheck="false"
+            placeholder="พิมพ์แล้วกด Enter…"
+            style="
+              flex:1;background:transparent;border:none;outline:none;
+              color:#e2e8f0;caret-color:#e2e8f0;
+              font-family:'JetBrains Mono',monospace;font-size:12.5px;
+              padding:8px 10px 8px 6px;line-height:1;
+            "
+          />
+          <button id="termKill" title="หยุดโปรแกรม (Ctrl+C)" style="
+            background:transparent;border:none;
+            color:var(--err);cursor:pointer;
+            font-size:13px;padding:0 12px;height:36px;
+            opacity:0;transition:opacity .2s;pointer-events:none;
+            font-family:'JetBrains Mono',monospace;
+          ">■</button>
+        </div>
       </div>
       <div class="output-box" id="box-log">
         <div id="logList"></div>
@@ -823,6 +850,15 @@ function handleMessage(msg) {
     case 'run_result':
       isRunning = false; setRunning(false, msg.user_id);
       showOutput(msg.stdout, msg.stderr, msg.exit_code); break;
+
+    case 'terminal_stdout':
+      termWrite(msg.text, 'term-stdout'); break;
+
+    case 'terminal_stderr':
+      termWrite(msg.text, 'term-stderr'); break;
+
+    case 'terminal_stdin_echo':
+      termWrite(msg.text, 'term-echo'); break;
   }
 }
 
@@ -971,13 +1007,64 @@ function removeUserPill(uid) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  RUN CODE
+//  INTERACTIVE TERMINAL
 // ═══════════════════════════════════════════════════════════════
+const termOutput   = document.getElementById('termOutput');
+const termInput    = document.getElementById('termInput');
+const termKill     = document.getElementById('termKill');
+let   termWaiting  = false;   // true while process is live
+
+function termWrite(text, cls) {
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = text;
+  termOutput.appendChild(span);
+  termOutput.scrollTop = termOutput.scrollHeight;
+}
+
+function termClear() {
+  termOutput.innerHTML = '';
+}
+
+function termSetWaiting(on) {
+  termWaiting = on;
+  termKill.style.opacity = on ? '1' : '0';
+  termKill.style.pointerEvents = on ? 'auto' : 'none';
+  if (on) {
+    // Auto-switch to terminal tab
+    if (!document.getElementById('box-stdin').classList.contains('active')) {
+      switchTab('stdin');
+    }
+    termInput.focus();
+  }
+}
+
+// Send a stdin line when Enter is pressed
+termInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const line = termInput.value;
+    termInput.value = '';
+    send({ type: 'stdin_line', line });
+    // local echo will arrive as terminal_stdin_echo from server
+  }
+  if ((e.key === 'c' && e.ctrlKey) || e.key === 'Escape') {
+    send({ type: 'kill' });
+  }
+});
+
+termKill.addEventListener('click', () => send({ type: 'kill' }));
+
+// ── RUN CODE ──────────────────────────────────────────────────
 document.getElementById('runBtn').addEventListener('click', runCode);
 function runCode() {
   if (!isRunning) {
-    const stdin = document.getElementById('stdinArea').value;
-    send({ type: 'run_code', stdin });
+    termClear();
+    termWrite('▸ กำลังรันโค้ด…\n', 'term-info');
+    // Switch to terminal tab automatically
+    if (!document.getElementById('box-stdin').classList.contains('active')) {
+      switchTab('stdin');
+    }
+    send({ type: 'run_code' });
   }
 }
 
@@ -990,28 +1077,27 @@ function setRunning(running, whoId) {
     document.getElementById('runStatus').textContent = `${who} กำลังรัน…`;
     document.getElementById('exitBadge').style.display = 'none';
     addLog(`▶ ${who} รันโค้ด`, '#fbbf24');
+    termSetWaiting(true);
   } else {
     document.getElementById('runStatus').textContent = 'พร้อมรัน';
+    termSetWaiting(false);
   }
 }
 
 function showOutput(stdout, stderr, code) {
-  const po = document.getElementById('pre-stdout');
-  const pe = document.getElementById('pre-stderr');
-  po.textContent = stdout || '// ไม่มี output';
-  po.className   = stdout ? 'output-pre stdout' : 'output-pre empty';
-  pe.textContent = stderr || '// ไม่มี error';
-  pe.className   = stderr ? 'output-pre stderr' : 'output-pre empty';
-  if (stderr) switchTab('stderr'); else if (stdout) switchTab('stdout');
+  // Terminal mode: output already streamed; just update exit badge & log
   const b = document.getElementById('exitBadge');
   b.style.display = 'inline';
   b.textContent   = `exit ${code}`;
   b.className     = 'exit-badge ' + (code === 0 ? 'ok' : 'err');
-  addLog((code === 0 ? '✅' : '❌') + ` รันเสร็จ exit ${code}`, code === 0 ? '#4ade80' : '#f87171');
-  if (outputPane.classList.contains('hidden')) {
-    outputPane.classList.remove('hidden');
-    btnOutput.classList.add('active');
-  }
+  const icon = code === 0 ? '✅' : '❌';
+  addLog(`${icon} รันเสร็จ exit ${code}`, code === 0 ? '#4ade80' : '#f87171');
+  termWrite(`\n▸ process exited (${code})\n`, 'term-info');
+  // Also populate stdout/stderr tabs for users who look there
+  const po = document.getElementById('pre-stdout');
+  const pe = document.getElementById('pre-stderr');
+  if (stdout) { po.textContent = stdout; po.className = 'output-pre stdout'; }
+  if (stderr) { pe.textContent = stderr; pe.className = 'output-pre stderr'; }
 }
 
 // ═══════════════════════════════════════════════════════════════
