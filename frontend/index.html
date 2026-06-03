@@ -16,365 +16,161 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.18/addon/comment/comment.min.js"></script>
 
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap');
 
-  :root {
-    --bg:        #0d0f14;
-    --surface:   #151820;
-    --surface2:  #1c2030;
-    --border:    #2a2f42;
-    --accent:    #7c6bff;
-    --accent2:   #4ecdc4;
-    --text:      #e2e8f0;
-    --muted:     #64748b;
-    --success:   #4ade80;
-    --error:     #f87171;
-    --warning:   #fbbf24;
-    --run-btn:   #22c55e;
-    --radius:    10px;
-  }
+:root {
+  --bg:      #0d0f14;
+  --surface: #151820;
+  --sur2:    #1c2030;
+  --border:  #2a2f42;
+  --accent:  #7c6bff;
+  --accent2: #4ecdc4;
+  --text:    #e2e8f0;
+  --muted:   #64748b;
+  --ok:      #4ade80;
+  --err:     #f87171;
+  --warn:    #fbbf24;
+  --fs:      14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;gap:12px;padding:0 14px;height:50px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0}
+.logo{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;color:var(--accent);white-space:nowrap}
+.logo span{color:var(--accent2)}
+.topbar-mid{flex:1;display:flex;align-items:center;gap:8px;min-width:0;overflow:hidden}
+.users-bar{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.user-pill{display:flex;align-items:center;gap:5px;padding:3px 8px 3px 5px;border-radius:20px;font-size:11px;font-weight:600;border:1px solid transparent;background:var(--sur2);white-space:nowrap;transition:opacity .3s}
+.user-pill .dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.user-pill.inactive{opacity:.35}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--ok);box-shadow:0 0 5px var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.name-input{background:var(--sur2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;font-family:'Space Grotesk',sans-serif;font-size:12px;width:110px;outline:none;transition:border-color .2s}
+.name-input:focus{border-color:var(--accent)}
+.icon-btn{background:var(--sur2);border:1px solid var(--border);color:var(--muted);padding:5px 9px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:500}
+.icon-btn:hover{color:var(--text);border-color:var(--accent)}
+.icon-btn.active{color:var(--accent);border-color:var(--accent);background:rgba(124,107,255,.1)}
+.btn-run{display:flex;align-items:center;gap:7px;padding:6px 16px;background:#22c55e;color:#000;border:none;border-radius:7px;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .15s}
+.btn-run:hover{background:#4ade80;transform:translateY(-1px)}
+.btn-run:active{transform:translateY(0)}
+.btn-run:disabled{background:var(--muted);cursor:not-allowed;transform:none}
+.btn-run svg{width:13px;height:13px}
+.conn-badge{font-size:11px;padding:2px 7px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+.conn-badge.connected{background:rgba(74,222,128,.15);color:var(--ok)}
+.conn-badge.disconnected{background:rgba(248,113,113,.15);color:var(--err)}
 
-  body {
-    font-family: 'Space Grotesk', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+/* ── TOOLBAR (below topbar) ── */
+.toolbar{display:flex;align-items:center;gap:6px;padding:5px 14px;background:var(--sur2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.toolbar-sep{width:1px;height:20px;background:var(--border);margin:0 2px}
+.fs-control{display:flex;align-items:center;gap:4px}
+.fs-btn{background:none;border:1px solid var(--border);color:var(--muted);width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.fs-btn:hover{color:var(--text);border-color:var(--accent)}
+.fs-label{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:28px;text-align:center}
 
-  /* ── TOPBAR ── */
-  .topbar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 0 20px;
-    height: 52px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
+/* shortcuts panel */
+.shortcuts-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center}
+.shortcuts-overlay.open{display:flex}
+.shortcuts-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:440px;max-width:520px}
+.shortcuts-box h2{font-size:15px;margin-bottom:16px;color:var(--accent);font-family:'JetBrains Mono',monospace}
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 20px}
+.sc-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sc-row:last-child{border:none}
+.sc-key{display:flex;gap:4px}
+.kbd{background:var(--sur2);border:1px solid var(--border);border-bottom:2px solid var(--border);border-radius:4px;padding:2px 7px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text);white-space:nowrap}
+.sc-desc{font-size:12px;color:var(--muted)}
+.close-btn{margin-top:18px;display:block;width:100%;padding:8px;background:var(--sur2);border:1px solid var(--border);border-radius:7px;color:var(--text);cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;transition:all .15s}
+.close-btn:hover{background:var(--border)}
 
-  .logo {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    font-size: 16px;
-    color: var(--accent);
-    letter-spacing: -0.5px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .logo span { color: var(--accent2); }
+/* ── MAIN ── */
+.main{flex:1;display:flex;overflow:hidden}
 
-  .topbar-mid { flex: 1; display: flex; align-items: center; gap: 12px; }
+/* ── EDITOR ── */
+.editor-pane{flex:1;display:flex;flex-direction:column;border-right:1px solid var(--border);position:relative;overflow:hidden}
+.pane-header{padding:6px 14px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pane-header .file-icon{color:var(--warn)}
+.cm-wrap{flex:1;overflow:hidden;position:relative}
 
-  .users-bar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
+/* CodeMirror overrides */
+.CodeMirror{font-family:'JetBrains Mono',monospace!important;font-size:var(--fs)!important;line-height:1.75!important;height:100%!important;background:#1a1e2e!important}
+.CodeMirror-scroll{padding-bottom:40px}
+.CodeMirror-gutters{background:#141824!important;border-right:1px solid var(--border)!important;min-width:44px}
+.CodeMirror-linenumber{color:#3a4060!important;padding:0 8px 0 6px}
+.CodeMirror-activeline-background{background:rgba(124,107,255,.07)!important}
+.CodeMirror-cursor{border-left:2px solid #e2e8f0!important}
+.CodeMirror-selected{background:rgba(124,107,255,.22)!important}
 
-  .user-pill {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px 4px 6px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    border: 1px solid transparent;
-    transition: all 0.2s;
-    background: var(--surface2);
-  }
-  .user-pill .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .user-pill.active { opacity: 1; }
-  .user-pill.inactive { opacity: 0.4; }
+/* ── Python token colors (enhanced) ── */
+/* keywords: if, for, def, class, return… */
+.cm-keyword{color:#ff79c6!important;font-weight:700!important}
+/* builtins: print, len, range… */
+.cm-builtin{color:#8be9fd!important}
+/* strings */
+.cm-string{color:#f1fa8c!important}
+/* numbers */
+.cm-number{color:#bd93f9!important;font-weight:600!important}
+/* operators + =  */
+.cm-operator{color:#ff79c6!important}
+/* def/class name */
+.cm-def{color:#50fa7b!important;font-weight:700!important}
+/* comments */
+.cm-comment{color:#6272a4!important;font-style:italic!important}
+/* variables (identifiers) */
+.cm-variable{color:#f8f8f2!important}
+/* meta / decorator */
+.cm-meta{color:#ffb86c!important}
+/* property access */
+.cm-property{color:#50fa7b!important}
+/* error */
+.cm-error{color:#ff5555!important}
 
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--success);
-    box-shadow: 0 0 6px var(--success);
-    animation: pulse 2s infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
+/* ── OUTPUT PANE ── */
+.output-pane{width:360px;flex-shrink:0;display:flex;flex-direction:column;background:var(--surface);overflow:hidden;transition:width .2s}
+.output-pane.hidden{width:0;overflow:hidden;border:none}
+.output-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0}
+.output-tab{padding:7px 14px;font-size:12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted);transition:all .2s;font-weight:500;white-space:nowrap}
+.output-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.output-tab:hover:not(.active){color:var(--text)}
+.output-content{flex:1;overflow:auto;padding:12px}
+.output-box{display:none}
+.output-box.active{display:block}
+.output-pre{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.output-pre.stdout{color:var(--ok)}
+.output-pre.stderr{color:var(--err)}
+.output-pre.empty{color:var(--muted);font-style:italic}
+.run-indicator{display:flex;align-items:center;gap:8px;padding:7px 14px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border);flex-shrink:0;min-height:32px}
+.spinner{width:11px;height:11px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:none}
+.spinner.active{display:block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.exit-badge{margin-left:auto;font-size:10px;padding:2px 6px;border-radius:3px}
+.exit-badge.ok{background:rgba(74,222,128,.15);color:var(--ok)}
+.exit-badge.err{background:rgba(248,113,113,.15);color:var(--err)}
 
-  .topbar-right { display: flex; align-items: center; gap: 10px; }
+/* ── LOG ── */
+.log-entry{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11.5px;font-family:'JetBrains Mono',monospace;align-items:flex-start}
+.log-entry:last-child{border:none}
+.log-time{color:var(--muted);flex-shrink:0;font-size:10px;padding-top:2px}
+.log-msg{flex:1;line-height:1.5}
 
-  .name-input {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-size: 13px;
-    width: 130px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  .name-input:focus { border-color: var(--accent); }
+/* ── remote cursor (label fade) ── */
+.rc-label{transition:opacity .4s}
 
-  .btn-run {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 7px 18px;
-    background: var(--run-btn);
-    color: #000;
-    border: none;
-    border-radius: 7px;
-    font-family: 'Space Grotesk', sans-serif;
-    font-weight: 600;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn-run:hover { background: #4ade80; transform: translateY(-1px); }
-  .btn-run:active { transform: translateY(0); }
-  .btn-run:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
-  .btn-run svg { width: 14px; height: 14px; }
-
-  .conn-badge {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .conn-badge.connected { background: rgba(74,222,128,0.15); color: var(--success); }
-  .conn-badge.disconnected { background: rgba(248,113,113,0.15); color: var(--error); }
-
-  /* ── MAIN LAYOUT ── */
-  .main {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-  }
-
-  /* ── EDITOR PANE ── */
-  .editor-pane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--border);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .pane-header {
-    padding: 8px 16px;
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
-  .pane-header .file-icon { color: var(--warning); }
-
-  .cm-wrap {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
-  }
-
-  .CodeMirror {
-    font-family: 'JetBrains Mono', monospace !important;
-    font-size: 14px !important;
-    line-height: 1.7 !important;
-    height: 100% !important;
-    background: #1a1e2e !important;
-  }
-  .CodeMirror-scroll { padding-bottom: 40px; }
-  .CodeMirror-gutters { background: #141824 !important; border-right: 1px solid var(--border) !important; }
-  .CodeMirror-linenumber { color: #3a4060 !important; }
-  .CodeMirror-activeline-background { background: rgba(124,107,255,0.06) !important; }
-  .CodeMirror-cursor { border-left: 2px solid #fff !important; }
-  .CodeMirror-selected { background: rgba(124,107,255,0.25) !important; }
-
-  /* Remote cursors */
-  .remote-cursor {
-    position: absolute;
-    width: 2px;
-    border-radius: 1px;
-    pointer-events: none;
-    z-index: 10;
-  }
-  .remote-cursor-label {
-    position: absolute;
-    top: -20px;
-    left: 0;
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    padding: 2px 6px;
-    border-radius: 3px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 11;
-    font-weight: 600;
-  }
-  .remote-selection {
-    opacity: 0.2;
-    border-radius: 2px;
-  }
-
-  /* ── OUTPUT PANE ── */
-  .output-pane {
-    width: 360px;
-    flex-shrink: 0;
-    display: flex;
-    flex-direction: column;
-    background: var(--surface);
-    overflow: hidden;
-  }
-
-  .output-header {
-    padding: 8px 16px;
-    font-size: 11px;
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--muted);
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-
-  .output-tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .output-tab {
-    padding: 8px 16px;
-    font-size: 12px;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    color: var(--muted);
-    transition: all 0.2s;
-    font-weight: 500;
-  }
-  .output-tab.active { color: var(--text); border-bottom-color: var(--accent); }
-  .output-tab:hover:not(.active) { color: var(--text); }
-
-  .output-content {
-    flex: 1;
-    overflow: auto;
-    padding: 14px;
-  }
-
-  .output-box {
-    display: none;
-  }
-  .output-box.active { display: block; }
-
-  .output-pre {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12.5px;
-    line-height: 1.65;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  .output-pre.stdout { color: var(--success); }
-  .output-pre.stderr { color: var(--error); }
-  .output-pre.empty  { color: var(--muted); font-style: italic; }
-
-  .run-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    font-size: 11px;
-    color: var(--muted);
-    font-family: 'JetBrains Mono', monospace;
-    border-top: 1px solid var(--border);
-    flex-shrink: 0;
-    min-height: 34px;
-  }
-  .spinner {
-    width: 12px; height: 12px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    display: none;
-  }
-  .spinner.active { display: block; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .exit-badge {
-    margin-left: auto;
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 3px;
-  }
-  .exit-badge.ok { background: rgba(74,222,128,0.15); color: var(--success); }
-  .exit-badge.err { background: rgba(248,113,113,0.15); color: var(--error); }
-
-  /* ── LOG ── */
-  .log-entry {
-    display: flex;
-    gap: 8px;
-    padding: 5px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 12px;
-    font-family: 'JetBrains Mono', monospace;
-    align-items: flex-start;
-  }
-  .log-entry:last-child { border-bottom: none; }
-  .log-time { color: var(--muted); flex-shrink: 0; font-size: 10px; padding-top: 2px; }
-  .log-msg { flex: 1; line-height: 1.5; }
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-  /* ── TOAST ── */
-  .toast {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    padding: 10px 16px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 13px;
-    z-index: 999;
-    animation: fadeIn 0.2s ease;
-    pointer-events: none;
-  }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 </style>
 </head>
 <body>
 
-<!-- ── TOPBAR ── -->
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">⟨/<span>CollabPy</span>⟩</div>
-
   <div class="topbar-mid">
-    <div class="status-dot" id="statusDot" title="WebSocket"></div>
+    <div class="status-dot" id="statusDot"></div>
     <div class="users-bar" id="usersBar"></div>
   </div>
-
   <div class="topbar-right">
     <span class="conn-badge disconnected" id="connBadge">ออฟไลน์</span>
     <input class="name-input" id="nameInput" placeholder="ชื่อของคุณ" maxlength="20">
@@ -385,22 +181,38 @@
   </div>
 </div>
 
-<!-- ── MAIN ── -->
-<div class="main">
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <!-- cursor label toggle -->
+  <button class="icon-btn active" id="btnCursorLabel" title="แสดง/ซ่อนชื่อเคอร์เซอร์">👁 ชื่อเคอร์เซอร์</button>
+  <div class="toolbar-sep"></div>
+  <!-- output panel toggle -->
+  <button class="icon-btn active" id="btnOutput" title="แสดง/ซ่อนแผงผลลัพธ์">📋 ผลลัพธ์</button>
+  <!-- log tab quick toggle -->
+  <button class="icon-btn" id="btnLog" title="เปิด log">📜 Log</button>
+  <div class="toolbar-sep"></div>
+  <!-- font size -->
+  <div class="fs-control">
+    <button class="fs-btn" id="fsDown" title="ลดขนาด">−</button>
+    <span class="fs-label" id="fsLabel">14</span>
+    <button class="fs-btn" id="fsUp" title="เพิ่มขนาด">+</button>
+  </div>
+  <div class="toolbar-sep"></div>
+  <!-- shortcuts -->
+  <button class="icon-btn" id="btnShortcuts">⌨️ คำสั่งลัด</button>
+</div>
 
-  <!-- Editor -->
+<!-- MAIN -->
+<div class="main">
   <div class="editor-pane">
     <div class="pane-header">
-      <span class="file-icon">●</span>
-      <span>main.py</span>
+      <span class="file-icon">●</span><span>main.py</span>
+      <span style="margin-left:auto;font-size:10px" id="cursorPos">Ln 1, Col 1</span>
     </div>
-    <div class="cm-wrap">
-      <textarea id="editor"></textarea>
-    </div>
+    <div class="cm-wrap"><textarea id="editor"></textarea></div>
   </div>
 
-  <!-- Output -->
-  <div class="output-pane">
+  <div class="output-pane" id="outputPane">
     <div class="output-tabs">
       <div class="output-tab active" data-tab="stdout">stdout</div>
       <div class="output-tab" data-tab="stderr">stderr</div>
@@ -423,21 +235,38 @@
       <span class="exit-badge" id="exitBadge" style="display:none"></span>
     </div>
   </div>
+</div>
 
+<!-- SHORTCUTS OVERLAY -->
+<div class="shortcuts-overlay" id="scOverlay">
+  <div class="shortcuts-box">
+    <h2>⌨️ คำสั่งลัด</h2>
+    <div class="sc-grid">
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Enter</span></span><span class="sc-desc">รันโค้ด</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">/</span></span><span class="sc-desc">comment บรรทัด</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Tab</span></span><span class="sc-desc">indent 4 ช่อง</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Shift</span><span class="kbd">Tab</span></span><span class="sc-desc">ลด indent</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Z</span></span><span class="sc-desc">undo</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">Y</span></span><span class="sc-desc">redo</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">A</span></span><span class="sc-desc">เลือกทั้งหมด</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Ctrl</span><span class="kbd">D</span></span><span class="sc-desc">ลบบรรทัด</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Alt</span><span class="kbd">↑</span></span><span class="sc-desc">เลื่อนบรรทัดขึ้น</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Alt</span><span class="kbd">↓</span></span><span class="sc-desc">เลื่อนบรรทัดลง</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">+</span><span class="kbd">−</span> toolbar</span><span class="sc-desc">ขนาดตัวอักษร</span></div>
+      <div class="sc-row"><span class="sc-key"><span class="kbd">Esc</span></span><span class="sc-desc">ปิดหน้าต่างนี้</span></div>
+    </div>
+    <button class="close-btn" id="scClose">ปิด</button>
+  </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────
-//  CONFIG — เปลี่ยน WS_URL ให้ตรงกับ Render URL ของคุณ
-// ─────────────────────────────────────────────────────────────
+// ── CONFIG ──────────────────────────────────────────────────
 const WS_BASE = (() => {
   const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   return `${proto}://${location.host}`;
 })();
 
-// ─────────────────────────────────────────────────────────────
-//  CodeMirror Setup
-// ─────────────────────────────────────────────────────────────
+// ── CodeMirror ───────────────────────────────────────────────
 const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
   mode: 'python',
   theme: 'dracula',
@@ -449,101 +278,140 @@ const cm = CodeMirror.fromTextArea(document.getElementById('editor'), {
   styleActiveLine: true,
   lineWrapping: false,
   extraKeys: {
-    'Tab': (cm) => cm.replaceSelection('    '),
-    'Ctrl-/': 'toggleComment',
-    'Cmd-/': 'toggleComment',
+    'Tab':        (cm) => cm.replaceSelection('    '),
+    'Shift-Tab':  'indentLess',
+    'Ctrl-/':     'toggleComment',
+    'Cmd-/':      'toggleComment',
     'Ctrl-Enter': () => runCode(),
-    'Cmd-Enter': () => runCode(),
+    'Cmd-Enter':  () => runCode(),
+    'Ctrl-D':     (cm) => { const cur = cm.getCursor(); cm.deleteLine(cur.line); },
+    'Alt-Up':     (cm) => moveLine(cm, -1),
+    'Alt-Down':   (cm) => moveLine(cm, 1),
   }
 });
 
-// ─────────────────────────────────────────────────────────────
-//  State
-// ─────────────────────────────────────────────────────────────
+function moveLine(cm, dir) {
+  const cur = cm.getCursor();
+  const line = cur.line;
+  const total = cm.lastLine();
+  const target = line + dir;
+  if (target < 0 || target > total) return;
+  const a = cm.getLine(line);
+  const b = cm.getLine(target);
+  cm.operation(() => {
+    cm.replaceRange(b, {line, ch:0}, {line, ch:a.length});
+    cm.replaceRange(a, {line:target, ch:0}, {line:target, ch:b.length});
+    cm.setCursor({line:target, ch:cur.ch});
+  });
+}
+
+// ── State ────────────────────────────────────────────────────
 let ws = null;
 let myUserId = 'user_' + Math.random().toString(36).slice(2, 7);
-let myColor = '#ffffff';
-let remoteCursors = {};   // uid -> bookmark widget
-let remoteMarkers = {};   // uid -> TextMarker (selection)
+let myColor  = '#ffffff';
+let remoteCursors  = {};
+let remoteMarkers  = {};
 let suppressChange = false;
-let isRunning = false;
+let isRunning      = false;
 let reconnectTimer = null;
-let lastSentCode = null;  // ✅ FIX: track what WE sent so we ignore our own echo
+let intentionalClose = false;
+let lastSentCode   = null;
+let showCursorLabels = true;
+let fontSize = parseInt(localStorage.getItem('cp_fs') || '14');
 
-// ─────────────────────────────────────────────────────────────
-//  Name input
-// ─────────────────────────────────────────────────────────────
-const nameInput = document.getElementById('nameInput');
-nameInput.value = localStorage.getItem('collabpy_name') || '';
+// ── Font Size ─────────────────────────────────────────────────
+function applyFontSize(n) {
+  fontSize = Math.max(10, Math.min(24, n));
+  document.documentElement.style.setProperty('--fs', fontSize + 'px');
+  cm.refresh();
+  document.getElementById('fsLabel').textContent = fontSize;
+  localStorage.setItem('cp_fs', fontSize);
+}
+applyFontSize(fontSize);
+document.getElementById('fsUp').onclick   = () => applyFontSize(fontSize + 1);
+document.getElementById('fsDown').onclick = () => applyFontSize(fontSize - 1);
 
-// ✅ FIX: reconnect เฉพาะตอน blur หรือกด Enter เท่านั้น ไม่ reconnect ทุก keystroke
-nameInput.addEventListener('input', () => {
-  localStorage.setItem('collabpy_name', nameInput.value.trim());
-});
-nameInput.addEventListener('blur', () => {
-  const newId = nameInput.value.trim() || myUserId;
-  if (newId !== getMyId()) { myUserId = newId; reconnect(); }
-});
-nameInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { nameInput.blur(); }
-});
+// ── Cursor Label Toggle ───────────────────────────────────────
+const btnCursorLabel = document.getElementById('btnCursorLabel');
+btnCursorLabel.onclick = () => {
+  showCursorLabels = !showCursorLabels;
+  btnCursorLabel.classList.toggle('active', showCursorLabels);
+  // fade all labels
+  document.querySelectorAll('.rc-label').forEach(el => {
+    el.style.opacity = showCursorLabels ? '1' : '0';
+    el.style.pointerEvents = showCursorLabels ? '' : 'none';
+  });
+};
 
-// ─────────────────────────────────────────────────────────────
-//  WebSocket
-// ─────────────────────────────────────────────────────────────
-let intentionalClose = false;  // ✅ FIX: flag to skip auto-reconnect on manual close
+// ── Output Panel Toggle ───────────────────────────────────────
+const outputPane = document.getElementById('outputPane');
+const btnOutput  = document.getElementById('btnOutput');
+btnOutput.onclick = () => {
+  const hidden = outputPane.classList.toggle('hidden');
+  btnOutput.classList.toggle('active', !hidden);
+};
 
-function connect() {
-  if (ws) {
-    intentionalClose = true;
-    ws.close();
+// ── Log quick switch ──────────────────────────────────────────
+document.getElementById('btnLog').onclick = () => {
+  if (outputPane.classList.contains('hidden')) {
+    outputPane.classList.remove('hidden');
+    btnOutput.classList.add('active');
   }
+  switchTab('log');
+  document.getElementById('btnLog').classList.toggle('active');
+};
+
+// ── Shortcuts Overlay ─────────────────────────────────────────
+const scOverlay = document.getElementById('scOverlay');
+document.getElementById('btnShortcuts').onclick = () => scOverlay.classList.add('open');
+document.getElementById('scClose').onclick      = () => scOverlay.classList.remove('open');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') scOverlay.classList.remove('open'); });
+scOverlay.addEventListener('click', e => { if (e.target === scOverlay) scOverlay.classList.remove('open'); });
+
+// ── Cursor position display ───────────────────────────────────
+cm.on('cursorActivity', () => {
+  const c = cm.getCursor();
+  document.getElementById('cursorPos').textContent = `Ln ${c.line+1}, Col ${c.ch+1}`;
+  sendCursor(c);
+  sendSelection();
+});
+
+// ── Name Input ────────────────────────────────────────────────
+const nameInput = document.getElementById('nameInput');
+nameInput.value = localStorage.getItem('cp_name') || '';
+nameInput.addEventListener('input',   () => localStorage.setItem('cp_name', nameInput.value.trim()));
+nameInput.addEventListener('blur',    () => { const id = nameInput.value.trim() || myUserId; if (id !== getMyId()) { myUserId = id; reconnect(); } });
+nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') nameInput.blur(); });
+
+// ── WebSocket ─────────────────────────────────────────────────
+function connect() {
   intentionalClose = false;
   const uid = encodeURIComponent(nameInput.value.trim() || myUserId);
   ws = new WebSocket(`${WS_BASE}/ws/${uid}`);
-
-  ws.onopen = () => {
-    setConnected(true);
-    addLog('🔌 เชื่อมต่อสำเร็จ', '#4ade80');
-  };
-
+  ws.onopen  = () => { setConnected(true); addLog('🔌 เชื่อมต่อสำเร็จ', '#4ade80'); };
   ws.onclose = () => {
     setConnected(false);
-    if (intentionalClose) return;  // ✅ FIX: don't auto-reconnect if we closed on purpose
-    addLog('❌ หลุดการเชื่อมต่อ — กำลังเชื่อมต่อใหม่...', '#f87171');
-    clearTimeout(reconnectTimer);
+    if (intentionalClose) return;
+    addLog('❌ หลุด — กำลังต่อใหม่...', '#f87171');
     reconnectTimer = setTimeout(connect, 3000);
   };
-
-  ws.onerror = () => {
-    addLog('⚠️ WebSocket error', '#fbbf24');
-  };
-
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    handleMessage(msg);
-  };
+  ws.onerror  = () => addLog('⚠️ WebSocket error', '#fbbf24');
+  ws.onmessage = e => handleMessage(JSON.parse(e.data));
 }
-
 function reconnect() {
   clearTimeout(reconnectTimer);
-  intentionalClose = true;  // ✅ prevent the onclose handler from queueing another reconnect
+  intentionalClose = true;
   if (ws) ws.close();
-  setTimeout(connect, 100);  // small delay to let close settle
+  setTimeout(connect, 100);
 }
-
 function send(obj) {
-  if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(obj));
-  }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
 }
+function getMyId() { return nameInput.value.trim() || myUserId; }
 
-// ─────────────────────────────────────────────────────────────
-//  Message Handler
-// ─────────────────────────────────────────────────────────────
+// ── Message Handler ───────────────────────────────────────────
 function handleMessage(msg) {
   switch (msg.type) {
-
     case 'init':
       myColor = msg.your_color;
       suppressChange = true;
@@ -553,329 +421,188 @@ function handleMessage(msg) {
       renderAllCursors(msg.cursors, msg.user_id);
       addLog('📄 โหลดโค้ดปัจจุบันแล้ว', '#64748b');
       break;
-
     case 'code_change':
-      // ✅ FIX: skip if it's our own code echoed back (server broadcasts to all including sender via from field check)
       if (msg.code === lastSentCode) break;
-      if (msg.from !== getMyId()) {
-        applyRemoteCode(msg.code);
-      }
+      if (msg.from !== getMyId()) applyRemoteCode(msg.code);
       break;
-
     case 'cursor_update':
       updateRemoteCursor(msg.user_id, msg.line, msg.ch, msg.color, msg.name);
       updateUserPill(msg.user_id, msg.color, msg.name);
       break;
-
     case 'selection':
       updateRemoteSelection(msg.user_id, msg.from, msg.to, msg.color);
       break;
-
     case 'user_joined':
       addLog(`👤 ${msg.name} เข้าร่วม`, msg.color);
       updateUserPill(msg.user_id, msg.color, msg.name);
       renderAllCursors(msg.cursors, getMyId());
       break;
-
     case 'user_left':
-      addLog(`👋 ${msg.user_id} ออกจากห้อง`, '#64748b');
+      addLog(`👋 ${msg.user_id} ออก`, '#64748b');
       removeRemoteCursor(msg.user_id);
       removeUserPill(msg.user_id);
-      renderAllCursors(msg.cursors, getMyId());
       break;
-
     case 'run_start':
-      isRunning = true;
-      setRunning(true, msg.user_id);
-      break;
-
+      isRunning = true; setRunning(true, msg.user_id); break;
     case 'run_result':
-      isRunning = false;
-      setRunning(false, msg.user_id);
-      showOutput(msg.stdout, msg.stderr, msg.exit_code);
-      break;
+      isRunning = false; setRunning(false, msg.user_id);
+      showOutput(msg.stdout, msg.stderr, msg.exit_code); break;
   }
 }
 
-function getMyId() {
-  return nameInput.value.trim() || myUserId;
-}
-
-// ─────────────────────────────────────────────────────────────
-//  Code Change
-// ─────────────────────────────────────────────────────────────
-cm.on('change', (_, change) => {
+// ── Code Change ───────────────────────────────────────────────
+// Operational transform: we batch our own changes and debounce slightly
+// so rapid typing doesn't fight with incoming remote edits
+let sendTimer = null;
+cm.on('change', () => {
   if (suppressChange) return;
-  const code = cm.getValue();
-  lastSentCode = code;  // ✅ FIX: remember what we sent
-  send({ type: 'code_change', code });
+  clearTimeout(sendTimer);
+  sendTimer = setTimeout(() => {
+    const code = cm.getValue();
+    lastSentCode = code;
+    send({ type: 'code_change', code });
+  }, 30); // 30ms debounce — feels instant but batches keystrokes
 });
 
-// ✅ FIX: smart apply — preserves cursor position & scroll
 function applyRemoteCode(newCode) {
   const cur    = cm.getCursor();
   const scroll = cm.getScrollInfo();
-
   suppressChange = true;
-
-  // Try to do a minimal diff: replace only the full content
-  // but restore cursor and scroll after
   cm.operation(() => {
-    const oldCode = cm.getValue();
-    if (oldCode === newCode) return;
-
-    // Replace all content but keep cursor sane
+    if (cm.getValue() === newCode) return;
     cm.setValue(newCode);
-
-    // Restore cursor (clamp to new doc bounds)
-    const lastLine = cm.lastLine();
-    const safeL    = Math.min(cur.line, lastLine);
-    const safeC    = Math.min(cur.ch, cm.getLine(safeL)?.length ?? 0);
-    cm.setCursor({ line: safeL, ch: safeC });
+    const ll = cm.lastLine();
+    const sl = Math.min(cur.line, ll);
+    const sc = Math.min(cur.ch, cm.getLine(sl)?.length ?? 0);
+    cm.setCursor({line: sl, ch: sc});
     cm.scrollTo(scroll.left, scroll.top);
   });
-
   suppressChange = false;
   lastSentCode = newCode;
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Cursor & Selection Sync
-// ─────────────────────────────────────────────────────────────
-cm.on('cursorActivity', () => {
-  const cur = cm.getCursor();
+// ── Cursor & Selection ────────────────────────────────────────
+function sendCursor(cur) {
   send({ type: 'cursor_move', line: cur.line, ch: cur.ch });
-
+}
+function sendSelection() {
   const sel = cm.listSelections()[0];
   if (sel && !posEq(sel.anchor, sel.head)) {
-    const from = posMin(sel.anchor, sel.head);
-    const to   = posMax(sel.anchor, sel.head);
-    send({ type: 'selection', from, to });
+    send({ type: 'selection', from: posMin(sel.anchor, sel.head), to: posMax(sel.anchor, sel.head) });
   }
-});
+}
+const posEq  = (a,b) => a.line===b.line && a.ch===b.ch;
+const posMin = (a,b) => (a.line<b.line||(a.line===b.line&&a.ch<=b.ch)) ? a : b;
+const posMax = (a,b) => posMin(a,b)===a ? b : a;
 
-function posEq(a, b) { return a.line === b.line && a.ch === b.ch; }
-function posMin(a, b) { return (a.line < b.line || (a.line === b.line && a.ch <= b.ch)) ? a : b; }
-function posMax(a, b) { return posMin(a, b) === a ? b : a; }
-
-// ─────────────────────────────────────────────────────────────
-//  Remote Cursor Rendering
-// ─────────────────────────────────────────────────────────────
+// ── Remote Cursors ────────────────────────────────────────────
 function updateRemoteCursor(uid, line, ch, color, name) {
   if (uid === getMyId()) return;
+  if (remoteCursors[uid]) { remoteCursors[uid].clear(); }
 
-  // Remove old
-  if (remoteCursors[uid]) {
-    remoteCursors[uid].clear();
-  }
+  const wrap = document.createElement('span');
+  wrap.style.cssText = `display:inline-block;width:2px;height:1.5em;background:${color};position:relative;vertical-align:text-bottom;margin-left:-1px`;
 
-  // Create cursor element
-  const cursorEl = document.createElement('div');
-  cursorEl.style.cssText = `
-    display: inline-block;
-    width: 2px;
-    height: 1.4em;
-    background: ${color};
-    position: relative;
-    vertical-align: text-bottom;
-    margin-left: -1px;
-  `;
+  const label = document.createElement('span');
+  label.className = 'rc-label';
+  label.textContent = name;
+  label.style.cssText = `position:absolute;bottom:100%;left:0;background:${color};color:#000;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;padding:1px 5px;border-radius:3px 3px 3px 0;white-space:nowrap;pointer-events:none;z-index:99;margin-bottom:2px;opacity:${showCursorLabels?1:0}`;
+  wrap.appendChild(label);
 
-  const labelEl = document.createElement('div');
-  labelEl.textContent = name;
-  labelEl.style.cssText = `
-    position: absolute;
-    top: -20px;
-    left: 0;
-    background: ${color};
-    color: #000;
-    font-size: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 700;
-    padding: 1px 5px;
-    border-radius: 3px;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 99;
-  `;
-  cursorEl.appendChild(labelEl);
-
-  const docLine = Math.min(line, cm.lastLine());
-  const lineLen = cm.getLine(docLine)?.length ?? 0;
-  const safeCh  = Math.min(ch, lineLen);
-
-  const widget = cm.setBookmark(
-    { line: docLine, ch: safeCh },
-    { widget: cursorEl, insertLeft: true }
-  );
-
-  remoteCursors[uid] = widget;
+  const dl = Math.min(line, cm.lastLine());
+  const dc = Math.min(ch, cm.getLine(dl)?.length ?? 0);
+  remoteCursors[uid] = cm.setBookmark({line:dl, ch:dc}, {widget:wrap, insertLeft:true});
 }
 
 function removeRemoteCursor(uid) {
-  if (remoteCursors[uid]) {
-    remoteCursors[uid].clear();
-    delete remoteCursors[uid];
-  }
-  if (remoteMarkers[uid]) {
-    remoteMarkers[uid].clear();
-    delete remoteMarkers[uid];
-  }
+  remoteCursors[uid]?.clear(); delete remoteCursors[uid];
+  remoteMarkers[uid]?.clear(); delete remoteMarkers[uid];
 }
 
 function renderAllCursors(cursors, myId) {
   Object.entries(cursors).forEach(([uid, c]) => {
-    if (uid !== myId) {
-      updateRemoteCursor(uid, c.line, c.ch, c.color, c.name);
-      updateUserPill(uid, c.color, c.name);
-    }
+    if (uid !== myId) { updateRemoteCursor(uid, c.line, c.ch, c.color, c.name); updateUserPill(uid, c.color, c.name); }
   });
 }
 
 function updateRemoteSelection(uid, from, to, color) {
   if (uid === getMyId()) return;
-  if (remoteMarkers[uid]) remoteMarkers[uid].clear();
-
+  remoteMarkers[uid]?.clear();
   try {
-    const marker = cm.markText(from, to, {
-      css: `background: ${color}33; border-radius: 2px;`,
-      inclusiveLeft: false,
-      inclusiveRight: false,
-    });
-    remoteMarkers[uid] = marker;
-    setTimeout(() => {
-      try { marker.clear(); } catch(e) {}
-    }, 3000);
-  } catch(e) {}
+    const m = cm.markText(from, to, { css:`background:${color}30;border-radius:2px`, inclusiveLeft:false, inclusiveRight:false });
+    remoteMarkers[uid] = m;
+    setTimeout(() => { try { m.clear(); } catch(e){} }, 4000);
+  } catch(e){}
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Users Bar
-// ─────────────────────────────────────────────────────────────
+// ── Users Bar ─────────────────────────────────────────────────
 function updateUserPill(uid, color, name) {
   const bar = document.getElementById('usersBar');
-  let pill = document.getElementById('pill_' + CSS.escape(uid));
-  if (!pill) {
-    pill = document.createElement('div');
-    pill.id = 'pill_' + uid;
-    pill.className = 'user-pill active';
-    bar.appendChild(pill);
-  }
-  pill.innerHTML = `<span class="dot" style="background:${color}"></span>${name}`;
-  pill.style.borderColor = color + '44';
+  let p = document.getElementById('pill_' + uid.replace(/[^a-z0-9]/gi,'_'));
+  if (!p) { p = document.createElement('div'); p.id = 'pill_' + uid.replace(/[^a-z0-9]/gi,'_'); p.className='user-pill active'; bar.appendChild(p); }
+  p.innerHTML = `<span class="dot" style="background:${color}"></span>${name}`;
+  p.style.borderColor = color + '44';
 }
-
 function removeUserPill(uid) {
-  const pill = document.getElementById('pill_' + CSS.escape(uid));
-  if (pill) {
-    pill.className = 'user-pill inactive';
-    setTimeout(() => pill.remove(), 2000);
-  }
+  const p = document.getElementById('pill_' + uid.replace(/[^a-z0-9]/gi,'_'));
+  if (p) { p.className='user-pill inactive'; setTimeout(()=>p.remove(), 2000); }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Run Code
-// ─────────────────────────────────────────────────────────────
-const runBtn = document.getElementById('runBtn');
-runBtn.addEventListener('click', runCode);
-
-function runCode() {
-  if (isRunning) return;
-  send({ type: 'run_code' });
-}
+// ── Run Code ──────────────────────────────────────────────────
+document.getElementById('runBtn').addEventListener('click', runCode);
+function runCode() { if (!isRunning) send({type:'run_code'}); }
 
 function setRunning(running, whoId) {
   isRunning = running;
-  runBtn.disabled = running;
+  document.getElementById('runBtn').disabled = running;
   document.getElementById('spinner').classList.toggle('active', running);
-
-  const whoName = whoId === getMyId() ? 'คุณ' : whoId;
-  if (running) {
-    document.getElementById('runStatus').textContent = `${whoName} กำลังรัน...`;
-    document.getElementById('exitBadge').style.display = 'none';
-    addLog(`▶ ${whoName} กดรันโค้ด`, '#fbbf24');
-  } else {
-    document.getElementById('runStatus').textContent = 'พร้อมรัน';
-  }
+  const who = whoId === getMyId() ? 'คุณ' : whoId;
+  if (running) { document.getElementById('runStatus').textContent = `${who} กำลังรัน…`; document.getElementById('exitBadge').style.display='none'; addLog(`▶ ${who} รันโค้ด`,'#fbbf24'); }
+  else { document.getElementById('runStatus').textContent = 'พร้อมรัน'; }
 }
 
-function showOutput(stdout, stderr, exitCode) {
-  const preOut = document.getElementById('pre-stdout');
-  const preErr = document.getElementById('pre-stderr');
-
-  if (stdout) {
-    preOut.textContent = stdout;
-    preOut.className = 'output-pre stdout';
-  } else {
-    preOut.textContent = '// ไม่มี output';
-    preOut.className = 'output-pre empty';
-  }
-
-  if (stderr) {
-    preErr.textContent = stderr;
-    preErr.className = 'output-pre stderr';
-    switchTab('stderr');
-  } else {
-    preErr.textContent = '// ไม่มี error';
-    preErr.className = 'output-pre empty';
-    if (stdout) switchTab('stdout');
-  }
-
-  const badge = document.getElementById('exitBadge');
-  badge.style.display = 'inline';
-  badge.textContent = `exit ${exitCode}`;
-  badge.className = 'exit-badge ' + (exitCode === 0 ? 'ok' : 'err');
-
-  const icon = exitCode === 0 ? '✅' : '❌';
-  addLog(`${icon} รันเสร็จ — exit code ${exitCode}`, exitCode === 0 ? '#4ade80' : '#f87171');
+function showOutput(stdout, stderr, code) {
+  const po = document.getElementById('pre-stdout');
+  const pe = document.getElementById('pre-stderr');
+  po.textContent = stdout || '// ไม่มี output';
+  po.className   = stdout ? 'output-pre stdout' : 'output-pre empty';
+  pe.textContent = stderr || '// ไม่มี error';
+  pe.className   = stderr ? 'output-pre stderr' : 'output-pre empty';
+  if (stderr) switchTab('stderr'); else if (stdout) switchTab('stdout');
+  const b = document.getElementById('exitBadge');
+  b.style.display='inline'; b.textContent=`exit ${code}`; b.className='exit-badge '+(code===0?'ok':'err');
+  addLog((code===0?'✅':'❌')+` รันเสร็จ exit ${code}`, code===0?'#4ade80':'#f87171');
+  // auto-show output panel if hidden
+  if (outputPane.classList.contains('hidden')) { outputPane.classList.remove('hidden'); btnOutput.classList.add('active'); }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Tabs
-// ─────────────────────────────────────────────────────────────
-document.querySelectorAll('.output-tab').forEach(tab => {
-  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
-});
-
+// ── Tabs ──────────────────────────────────────────────────────
+document.querySelectorAll('.output-tab').forEach(t => t.addEventListener('click', ()=>switchTab(t.dataset.tab)));
 function switchTab(name) {
-  document.querySelectorAll('.output-tab').forEach(t =>
-    t.classList.toggle('active', t.dataset.tab === name));
-  document.querySelectorAll('.output-box').forEach(b =>
-    b.classList.toggle('active', b.id === 'box-' + name));
+  document.querySelectorAll('.output-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
+  document.querySelectorAll('.output-box').forEach(b=>b.classList.toggle('active',b.id==='box-'+name));
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Log
-// ─────────────────────────────────────────────────────────────
-function addLog(msg, color = '#e2e8f0') {
+// ── Log ───────────────────────────────────────────────────────
+function addLog(msg, color='#e2e8f0') {
   const list = document.getElementById('logList');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry';
-  const now = new Date();
-  const time = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  entry.innerHTML = `
-    <span class="log-time">${time}</span>
-    <span class="log-msg" style="color:${color}">${msg}</span>
-  `;
-  list.appendChild(entry);
-  list.scrollTop = list.scrollHeight;
+  const e = document.createElement('div'); e.className='log-entry';
+  const t = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  e.innerHTML=`<span class="log-time">${t}</span><span class="log-msg" style="color:${color}">${msg}</span>`;
+  list.appendChild(e); list.scrollTop=list.scrollHeight;
 }
 
-// ─────────────────────────────────────────────────────────────
-//  UI Helpers
-// ─────────────────────────────────────────────────────────────
+// ── UI Helpers ────────────────────────────────────────────────
 function setConnected(ok) {
-  const dot = document.getElementById('statusDot');
-  const badge = document.getElementById('connBadge');
-  dot.style.background = ok ? 'var(--success)' : '#f87171';
-  dot.style.boxShadow = ok ? '0 0 6px var(--success)' : '0 0 6px #f87171';
-  badge.textContent = ok ? 'ออนไลน์' : 'ออฟไลน์';
-  badge.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
+  document.getElementById('statusDot').style.cssText = ok
+    ? 'background:var(--ok);box-shadow:0 0 5px var(--ok)'
+    : 'background:#f87171;box-shadow:0 0 5px #f87171';
+  const b = document.getElementById('connBadge');
+  b.textContent = ok ? 'ออนไลน์' : 'ออฟไลน์';
+  b.className = 'conn-badge ' + (ok ? 'connected' : 'disconnected');
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Init
-// ─────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────
 connect();
 </script>
 </body>
