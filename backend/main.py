@@ -135,13 +135,14 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
 
             # ── Run code ─────────────────────────────────────────
             elif msg_type == "run_code":
+                stdin_data = data.get("stdin", "")
                 # Notify all users that execution has started
                 await broadcast({
                     "type":    "run_start",
                     "user_id": user_id,
                 })
 
-                output = await run_python(shared_code)
+                output = await run_python(shared_code, stdin_data)
 
                 await broadcast({
                     "type":      "run_result",
@@ -165,7 +166,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
         })
 
 
-async def run_python(code: str) -> dict:
+async def run_python(code: str, stdin_data: str = "") -> dict:
     """Execute Python code in a subprocess with a 10-second timeout."""
     tmp_path = None
     try:
@@ -179,10 +180,14 @@ async def run_python(code: str) -> dict:
             sys.executable, tmp_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            stdin=asyncio.subprocess.PIPE,
         )
 
+        encoded_stdin = stdin_data.encode("utf-8") if stdin_data else b""
         try:
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10.0)
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=encoded_stdin), timeout=10.0
+            )
         except asyncio.TimeoutError:
             proc.kill()
             return {

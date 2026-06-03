@@ -375,6 +375,7 @@ body {
 .output-pre.stdout { color: var(--ok); }
 .output-pre.stderr { color: var(--err); }
 .output-pre.empty  { color: var(--muted); font-style: italic; }
+#stdinArea:focus   { border-color: var(--accent2) !important; box-shadow: 0 0 0 2px rgba(78,205,196,.15); }
 .run-indicator {
   display: flex;
   align-items: center;
@@ -479,6 +480,7 @@ body {
     <div class="output-tabs">
       <div class="output-tab active" data-tab="stdout">stdout</div>
       <div class="output-tab"        data-tab="stderr">stderr</div>
+      <div class="output-tab"        data-tab="stdin">📥 stdin</div>
       <div class="output-tab"        data-tab="log">log</div>
     </div>
     <div class="output-content">
@@ -487,6 +489,31 @@ body {
       </div>
       <div class="output-box" id="box-stderr">
         <pre class="output-pre empty" id="pre-stderr">// ไม่มี error</pre>
+      </div>
+      <div class="output-box" id="box-stdin">
+        <div style="margin-bottom:8px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace;">
+          พิมพ์ค่า input() ด้านล่าง — แต่ละบรรทัด = หนึ่งครั้งที่ input() ถูกเรียก
+        </div>
+        <textarea
+          id="stdinArea"
+          placeholder="เช่น&#10;42&#10;hello world&#10;1 2 3"
+          spellcheck="false"
+          style="
+            width:100%;height:calc(100% - 36px);
+            min-height:160px;
+            background:#0f1219;
+            color:#50fa7b;
+            border:1px solid var(--border);
+            border-radius:7px;
+            padding:10px 12px;
+            font-family:'JetBrains Mono',monospace;
+            font-size:12.5px;
+            line-height:1.7;
+            resize:none;
+            outline:none;
+            caret-color:#e2e8f0;
+          "
+        ></textarea>
       </div>
       <div class="output-box" id="box-log">
         <div id="logList"></div>
@@ -947,7 +974,12 @@ function removeUserPill(uid) {
 //  RUN CODE
 // ═══════════════════════════════════════════════════════════════
 document.getElementById('runBtn').addEventListener('click', runCode);
-function runCode() { if (!isRunning) send({ type: 'run_code' }); }
+function runCode() {
+  if (!isRunning) {
+    const stdin = document.getElementById('stdinArea').value;
+    send({ type: 'run_code', stdin });
+  }
+}
 
 function setRunning(running, whoId) {
   isRunning = running;
