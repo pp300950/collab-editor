@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: collabpy
+    env: python
+    region: singapore   # ใกล้ไทยสุด
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python main.py
+    envVars:
+      - key: PORT
+        value: 10000
+    staticPublishPath: frontend
